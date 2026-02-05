@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>工務發包管理</title>
+
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  max-width:100vw;
+  overflow-x:hidden;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:#0b1020;
+  color:#e8ecff;
+}
+
+.container{max-width:1400px;margin:auto;padding:24px;}
+h1{margin:0;font-size:20px;}
+h3{margin:0 0 8px;font-size:15px;}
+.sub{font-size:13px;color:#a7b0d6;margin:8px 0 12px;}
+
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px;}
+
+.card{
+  background:#111a33;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:14px;
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+
+.item{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+.item.active{
+  outline:2px solid #6aa3ff;
+  background:rgba(106,163,255,.15);
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+}
+.modal.active{display:flex;}
+
+.modal-box{
+  background:#111a33;
+  border-radius:14px;
+  padding:16px;
+  border:1px solid rgba(255,255,255,.15);
+  max-height:90vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.modal-scroll{
+  overflow-y:auto;
+  padding-right:6px;
+}
+
+.quote-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  margin-top:12px;
+}
+.quote-table th,
+.quote-table td{
+  padding:8px;
+  text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.quote-table th{
+  color:#a7b0d6;
+  font-weight:normal;
+}
+.quote-table input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+}
+
+.total-row{
+  font-weight:bold;
+  background:rgba(106,163,255,.1);
+}
+
+.actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.btn{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+  background:#6aa3ff;
+  color:#0b1020;
+}
+.btn.green{background:#3ddc97;}
+.btn.orange{background:#ffcc66;}
+.btn.gray{background:#a7b0d6;}
+.btn.purple{background:#a855f7;}
+
+.section{
+  margin-top:14px;
+  border-top:1px solid rgba(255,255,255,.1);
+  padding-top:10px;
+}
+
+.package-item{
+  background:rgba(106,163,255,.1);
+  border:1px solid rgba(106,163,255,.3);
+  border-radius:8px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.package-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.package-title{
+  font-weight:bold;
+  font-size:15px;
+}
+
+.package-actions{
+  display:flex;
+  gap:8px;
+}
+
+.gantt-chart{
+  position:relative;
+  min-height:200px;
+  margin-top:12px;
+  padding:12px;
+  background:rgba(0,0,0,.2);
+  border-radius:8px;
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+.gantt-scroll-wrapper{
+  overflow-x:auto;
+  overflow-y:visible;
+  width:100%;
+  position:relative;
+}
+
+.gantt-header{
+  display:flex;
+  gap:8px;
+  margin-bottom:8px;
+  font-size:11px;
+  color:#a7b0d6;
+  position:sticky;
+  top:0;
+  background:rgba(0,0,0,.2);
+  z-index:1;
+  padding-bottom:4px;
+}
+
+.gantt-header-label{
+  width:200px;
+  flex-shrink:0;
+  position:sticky;
+  left:0;
+  background:rgba(0,0,0,.2);
+  z-index:2;
+}
+
+.gantt-header-timeline{
+  flex-shrink:0;
+}
+
+.gantt-item{
+  display:flex;
+  gap:8px;
+  margin-bottom:8px;
+  align-items:center;
+  height:40px;
+}
+
+.gantt-label{
+  width:200px;
+  flex-shrink:0;
+  font-size:12px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  position:sticky;
+  left:0;
+  background:rgba(17,26,51,.95);
+  z-index:1;
+  padding-right:8px;
+}
+
+.gantt-bar-container{
+  position:relative;
+  height:30px;
+  background:rgba(255,255,255,.05);
+  border-radius:4px;
+  flex-shrink:0;
+}
+
+.gantt-bar{
+  position:absolute;
+  height:100%;
+  background:rgba(106,163,255,.6);
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  color:#e8ecff;
+  border:1px solid rgba(255,255,255,.2);
+}
+
+.category-header{
+  background:rgba(106,163,255,.15);
+  font-weight:bold;
+  padding:8px;
+}
+
+.checkbox-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:8px 0;
+}
+
+.checkbox-item{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:4px 8px;
+  background:rgba(255,255,255,.05);
+  border-radius:4px;
+  font-size:12px;
+}
+
+.package-summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:12px;
+  margin-top:12px;
+}
+
+.summary-card{
+  background:rgba(0,0,0,.2);
+  padding:12px;
+  border-radius:8px;
+}
+
+.summary-label{
+  font-size:12px;
+  color:#a7b0d6;
+  margin-bottom:4px;
+}
+
+.summary-value{
+  font-size:16px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>工務發包管理</h1>
+  <div class="sub">選擇合約項目進行發包配置</div>
+
+  <div class="grid">
+    <div class="card" id="projectList">
+      <h3>合約項目列表</h3>
+      <div id="projectItems"></div>
+    </div>
+    <div class="card" id="projectDetail">
+      <div class="sub">請選擇左側合約項目</div>
+    </div>
+  </div>
+</div>
+
+<!-- 發包配置 Modal -->
+<div class="modal" id="packageModal">
+  <div class="modal-box" style="width:1200px;max-width:95vw">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">發包配置</h3>
+      <button class="btn gray" onclick="closePackageModal()">✕</button>
+    </div>
+
+    <div class="modal-scroll" style="max-height:70vh">
+      <div id="packageConfigContent"></div>
+    </div>
+
+    <div class="actions" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+      <button class="btn green" onclick="savePackageConfig()">確定配置</button>
+      <button class="btn gray" onclick="closePackageModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// 模擬數據
+const contracts = [
+  {
+    id: 1,
+    contract_code: "C2026-001",
+    project_code: "P2026-001",
+    customer_name: "陳小姐",
+    address: "台北市大安區復興南路",
+    quote: {
+      id: 1,
+      estimated_start_date: "2026-02-15",
+      estimated_end_date: "2026-04-30",
+      total_amount: 2500000
+    },
+    quote_items: [
+      {id: 1, category: "拆除工程", category_id: 1, item_name: "全室高樓拆除", unit: "尺", quantity: 50, unit_price: 560, subtotal: 28000, note: "依數量多寡價格另計"},
+      {id: 2, category: "拆除工程", category_id: 1, item_name: "室內保護", unit: "坪", quantity: 30, unit_price: 1040, subtotal: 31200, note: "鋪2層保護層"},
+      {id: 3, category: "拆除工程", category_id: 1, item_name: "公共空間保護", unit: "坪", quantity: 5, unit_price: 1040, subtotal: 5200, note: ""},
+      {id: 4, category: "拆除工程", category_id: 1, item_name: "大門保護", unit: "式", quantity: 1, unit_price: 4820, subtotal: 4820, note: ""},
+      {id: 5, category: "拆除工程", category_id: 1, item_name: "全室拆除廢棄物清運", unit: "車", quantity: 2, unit_price: 17880, subtotal: 35760, note: ""},
+      {id: 6, category: "拆除工程", category_id: 1, item_name: "保護板拆除及清運", unit: "式", quantity: 1, unit_price: 4820, subtotal: 4820, note: ""},
+      {id: 7, category: "油漆工程", category_id: 3, item_name: "油漆銘色", unit: "坪", quantity: 25, unit_price: 2760, subtotal: 69000, note: ""},
+      {id: 8, category: "油漆工程", category_id: 3, item_name: "新成屋牆面刷漆", unit: "坪", quantity: 20, unit_price: 1180, subtotal: 23600, note: ""},
+      {id: 9, category: "油漆工程", category_id: 3, item_name: "新成屋原始天花板刷漆", unit: "坪", quantity: 15, unit_price: 1590, subtotal: 23850, note: ""},
+      {id: 10, category: "油漆工程", category_id: 3, item_name: "批土平整", unit: "坪", quantity: 25, unit_price: 1200, subtotal: 30000, note: ""},
+      {id: 11, category: "油漆工程", category_id: 3, item_name: "顏色一致檢查", unit: "式", quantity: 1, unit_price: 5000, subtotal: 5000, note: ""}
+    ],
+    gantt_items: [
+      {id: 1, quote_item_id: 1, category: "拆除工程", item_name: "全室高樓拆除", quantity: 50, unit: "尺", start_date: "2026-02-15", end_date: "2026-02-20", duration: 6},
+      {id: 2, quote_item_id: 2, category: "拆除工程", item_name: "室內保護", quantity: 30, unit: "坪", start_date: "2026-02-15", end_date: "2026-02-16", duration: 2},
+      {id: 3, quote_item_id: 3, category: "拆除工程", item_name: "公共空間保護", quantity: 5, unit: "坪", start_date: "2026-02-16", end_date: "2026-02-17", duration: 2},
+      {id: 4, quote_item_id: 4, category: "拆除工程", item_name: "大門保護", quantity: 1, unit: "式", start_date: "2026-02-16", end_date: "2026-02-16", duration: 1},
+      {id: 5, quote_item_id: 5, category: "拆除工程", item_name: "全室拆除廢棄物清運", quantity: 2, unit: "車", start_date: "2026-02-21", end_date: "2026-02-22", duration: 2},
+      {id: 6, quote_item_id: 6, category: "拆除工程", item_name: "保護板拆除及清運", quantity: 1, unit: "式", start_date: "2026-04-25", end_date: "2026-04-26", duration: 2},
+      {id: 7, quote_item_id: 7, category: "油漆工程", item_name: "油漆銘色", quantity: 25, unit: "坪", start_date: "2026-03-10", end_date: "2026-03-15", duration: 6},
+      {id: 8, quote_item_id: 8, category: "油漆工程", item_name: "新成屋牆面刷漆", quantity: 20, unit: "坪", start_date: "2026-03-10", end_date: "2026-03-12", duration: 3},
+      {id: 9, quote_item_id: 9, category: "油漆工程", item_name: "新成屋原始天花板刷漆", quantity: 15, unit: "坪", start_date: "2026-03-13", end_date: "2026-03-14", duration: 2},
+      {id: 10, quote_item_id: 10, category: "油漆工程", item_name: "批土平整", quantity: 25, unit: "坪", start_date: "2026-03-08", end_date: "2026-03-09", duration: 2},
+      {id: 11, quote_item_id: 11, category: "油漆工程", item_name: "顏色一致檢查", quantity: 1, unit: "式", start_date: "2026-03-16", end_date: "2026-03-16", duration: 1}
+    ]
+  },
+  {
+    id: 2,
+    contract_code: "C2026-002",
+    project_code: "P2026-002",
+    customer_name: "林先生",
+    address: "新北市板橋區文化路",
+    quote: {
+      id: 2,
+      estimated_start_date: "2026-03-01",
+      estimated_end_date: "2026-05-15",
+      total_amount: 3200000
+    },
+    quote_items: [
+      {id: 12, category: "水電工程", category_id: 2, item_name: "插座出線口", unit: "處", quantity: 20, unit_price: 1110, subtotal: 22200, note: "含材料"},
+      {id: 13, category: "水電工程", category_id: 2, item_name: "安裝開關 / 插座面板", unit: "個", quantity: 30, unit_price: 560, subtotal: 16800, note: ""},
+      {id: 14, category: "系統櫃工程", category_id: 6, item_name: "玄關高櫃", unit: "尺", quantity: 8, unit_price: 7530, subtotal: 60240, note: ""}
+    ],
+    gantt_items: [
+      {id: 12, quote_item_id: 12, category: "水電工程", item_name: "插座出線口", quantity: 20, unit: "處", start_date: "2026-03-05", end_date: "2026-03-08", duration: 4},
+      {id: 13, quote_item_id: 13, category: "水電工程", item_name: "安裝開關 / 插座面板", quantity: 30, unit: "個", start_date: "2026-03-10", end_date: "2026-03-12", duration: 3},
+      {id: 14, quote_item_id: 14, category: "系統櫃工程", item_name: "玄關高櫃", quantity: 8, unit: "尺", start_date: "2026-04-01", end_date: "2026-04-05", duration: 5}
+    ]
+  }
+];
+
+let selectedContract = null;
+let packageConfig = {}; // {contractId: [{packageIndex: 0, items: [{quote_item_id, quantity}...]}]}
+let packageStatus = {}; // {contractId: {packageIndex: 'draft'|'building'|'sent'}}
+let selectedItems = {}; // {itemId: {checked: bool, quantity: number}} - 用于临时选择
+
+function renderProjectList(){
+  const container = document.getElementById("projectItems");
+  container.innerHTML = "";
+  
+  contracts.forEach(contract => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${contract.contract_code}</b><br>
+      <span style="font-size:12px;color:#a7b0d6">${contract.customer_name} - ${contract.address}</span>
+    `;
+    div.onclick = () => selectContract(contract);
+    container.appendChild(div);
+  });
+}
+
+function selectContract(contract){
+  selectedContract = contract;
+  document.querySelectorAll(".item").forEach(item => item.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+  renderContractDetail(contract);
+}
+
+function renderContractDetail(contract){
+  const detail = document.getElementById("projectDetail");
+  
+  // 按分類分組報價單項目
+  const itemsByCategory = {};
+  contract.quote_items.forEach(item => {
+    if(!itemsByCategory[item.category]){
+      itemsByCategory[item.category] = [];
+    }
+    itemsByCategory[item.category].push(item);
+  });
+  
+  // 按分類分組甘特圖項目
+  const ganttByCategory = {};
+  contract.gantt_items.forEach(item => {
+    if(!ganttByCategory[item.category]){
+      ganttByCategory[item.category] = [];
+    }
+    ganttByCategory[item.category].push(item);
+  });
+  
+  let html = `
+    <h3>合約資訊</h3>
+    <div class="card" style="margin-bottom:16px">
+      <b>合約代碼：</b>${contract.contract_code}<br>
+      <b>案件代碼：</b>${contract.project_code}<br>
+      <b>客戶：</b>${contract.customer_name}<br>
+      <b>地址：</b>${contract.address}<br>
+      <b>預估施工期間：</b>${contract.quote.estimated_start_date} ~ ${contract.quote.estimated_end_date}<br>
+    </div>
+    
+    <div class="section">
+      <h3>報價單明細</h3>
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th style="width:5%">編號</th>
+            <th style="width:25%">工程分類</th>
+            <th style="width:30%">項目名稱</th>
+            <th style="width:10%">數量</th>
+            <th style="width:10%">單位</th>
+            <th style="width:10%">單價</th>
+            <th style="width:10%">小計</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  Object.keys(itemsByCategory).forEach(category => {
+    html += `<tr class="category-header"><td colspan="7">${category}</td></tr>`;
+    itemsByCategory[category].forEach((item, idx) => {
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${item.category}</td>
+          <td>${item.item_name}</td>
+          <td>${item.quantity}</td>
+          <td>${item.unit}</td>
+          <td>${formatCurrency(item.unit_price)}</td>
+          <td>${formatCurrency(item.subtotal)}</td>
+        </tr>
+      `;
+    });
+    
+    // 分類小計
+    const categoryTotal = itemsByCategory[category].reduce((sum, item) => sum + item.subtotal, 0);
+    html += `<tr class="total-row"><td colspan="6" style="text-align:right">小計</td><td>${formatCurrency(categoryTotal)}</td></tr>`;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="section">
+      <h3>施工甘特圖</h3>
+      <div class="gantt-chart" id="ganttChart"></div>
+    </div>
+    
+    <div class="section" id="packagesSection" style="display:none">
+      <h3>已配置發包</h3>
+      <div id="packagesList"></div>
+    </div>
+    
+    <div class="actions">
+      <button class="btn green" onclick="openPackageModal()">發包配置</button>
+    </div>
+  `;
+  
+  detail.innerHTML = html;
+  
+  // 渲染甘特圖
+  renderGanttChart(contract.gantt_items);
+  
+  // 渲染已配置的发包列表
+  renderPackagesList(contract);
+}
+
+function renderGanttChart(ganttItems){
+  const container = document.getElementById("ganttChart");
+  if(!container || !ganttItems || ganttItems.length === 0) return;
+  
+  // 找出所有日期範圍
+  const allDates = [];
+  ganttItems.forEach(item => {
+    if(item.start_date) allDates.push(new Date(item.start_date));
+    if(item.end_date) allDates.push(new Date(item.end_date));
+  });
+  
+  if(allDates.length === 0){
+    container.innerHTML = '<p style="color:#a7b0d6;text-align:center;padding:20px">無甘特圖資料</p>';
+    return;
+  }
+  
+  const minDate = new Date(Math.min(...allDates));
+  const maxDate = new Date(Math.max(...allDates));
+  minDate.setDate(minDate.getDate() - 2);
+  maxDate.setDate(maxDate.getDate() + 2);
+  
+  const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+  const dayWidth = 30; // 固定每个日期宽度为30px，确保可读性
+  const timelineWidth = totalDays * dayWidth; // 计算时间轴总宽度
+  
+  let html = `
+    <div class="gantt-scroll-wrapper">
+      <div class="gantt-header">
+        <div class="gantt-header-label">項目</div>
+        <div class="gantt-header-timeline" style="width:${timelineWidth}px">
+          <div style="display:flex;gap:2px">
+  `;
+  
+  // 生成日期標籤
+  for(let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)){
+    const dayOfWeek = ['日','一','二','三','四','五','六'][d.getDay()];
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    html += `
+      <div style="width:${dayWidth}px;flex-shrink:0;text-align:center;padding:2px;border-right:1px solid rgba(255,255,255,.1);${isWeekend ? 'background:rgba(255,107,107,.1)' : ''}">
+        <div>${d.getDate()}</div>
+        <div style="font-size:10px">${dayOfWeek}</div>
+      </div>
+    `;
+  }
+  
+  html += `
+          </div>
+        </div>
+      </div>
+  `;
+  
+  // 生成甘特圖條
+  ganttItems.forEach(item => {
+    if(!item.start_date){
+      html += `
+        <div class="gantt-item">
+          <div class="gantt-label" title="${item.item_name}">${item.item_name}</div>
+          <div class="gantt-bar-container" style="width:${timelineWidth}px">
+            <div style="flex:1;color:#a7b0d6;font-size:11px;text-align:center">未設定日期</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    const start = new Date(item.start_date);
+    const end = item.end_date ? new Date(item.end_date) : new Date(start.getTime() + (item.duration - 1) * 24 * 60 * 60 * 1000);
+    
+    const startOffset = Math.ceil((start - minDate) / (1000 * 60 * 60 * 24));
+    const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    html += `
+      <div class="gantt-item">
+        <div class="gantt-label" title="${item.item_name}">${item.item_name}</div>
+        <div class="gantt-bar-container" style="width:${timelineWidth}px">
+          <div class="gantt-bar" style="left:${startOffset * dayWidth}px;width:${duration * dayWidth}px" title="${item.start_date} ~ ${end.toISOString().slice(0,10)}">
+            ${item.start_date} ~ ${end.toISOString().slice(0,10)}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  
+  container.innerHTML = html;
+}
+
+function openPackageModal(){
+  if(!selectedContract){
+    alert("請先選擇合約項目");
+    return;
+  }
+  
+  // 初始化或加载已有配置
+  if(!packageConfig[selectedContract.id]){
+    packageConfig[selectedContract.id] = [];
+  }
+  if(!packageStatus[selectedContract.id]){
+    packageStatus[selectedContract.id] = {};
+  }
+  
+  document.getElementById("packageModal").classList.add("active");
+  renderPackageConfig();
+}
+
+function closePackageModal(){
+  document.getElementById("packageModal").classList.remove("active");
+}
+
+function renderPackageConfig(){
+  const content = document.getElementById("packageConfigContent");
+  const packages = packageConfig[selectedContract.id] || [];
+  
+  // 按分類分組報價單項目
+  const itemsByCategory = {};
+  selectedContract.quote_items.forEach(item => {
+    if(!itemsByCategory[item.category]){
+      itemsByCategory[item.category] = [];
+    }
+    itemsByCategory[item.category].push(item);
+  });
+  
+  // 計算每個項目的已分配數量
+  const allocatedQuantities = {};
+  packages.forEach(pkg => {
+    pkg.items.forEach(item => {
+      if(!allocatedQuantities[item.quote_item_id]){
+        allocatedQuantities[item.quote_item_id] = 0;
+      }
+      allocatedQuantities[item.quote_item_id] += item.quantity || 0;
+    });
+  });
+  
+  let html = `
+    <div style="margin-bottom:16px;padding:12px;background:rgba(106,163,255,.1);border-radius:8px">
+      <b>合約：</b>${selectedContract.contract_code} - ${selectedContract.customer_name}<br>
+      <b>預估施工期間：</b>${selectedContract.quote.estimated_start_date} ~ ${selectedContract.quote.estimated_end_date}
+    </div>
+    
+    <div id="packagesContainer"></div>
+    
+    <div class="section" style="margin-top:20px">
+      <h3>報價單明細</h3>
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th style="width:5%">勾選</th>
+            <th style="width:5%">編號</th>
+            <th style="width:30%">項目名稱</th>
+            <th style="width:10%">總數量</th>
+            <th style="width:10%">已分配</th>
+            <th style="width:10%">剩餘</th>
+            <th style="width:10%">分配數量</th>
+            <th style="width:10%">單位</th>
+            <th style="width:10%">單價</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  let itemIndex = 1;
+  Object.keys(itemsByCategory).forEach(category => {
+    html += `<tr class="category-header"><td colspan="9">${category}</td></tr>`;
+    itemsByCategory[category].forEach(item => {
+      const allocated = allocatedQuantities[item.id] || 0;
+      const remaining = item.quantity - allocated;
+      html += `
+        <tr>
+          <td>
+            <input type="checkbox" 
+              id="select_item_${item.id}"
+              ${remaining <= 0 ? "disabled" : ""}
+              onchange="toggleItemSelection(${item.id}, this.checked, ${remaining})">
+          </td>
+          <td>${itemIndex++}</td>
+          <td>${item.item_name}</td>
+          <td>${item.quantity}</td>
+          <td style="color:${allocated > 0 ? '#3ddc97' : '#a7b0d6'}">${allocated}</td>
+          <td style="color:${remaining > 0 ? '#ffcc66' : '#ff6b6b'}">${remaining}</td>
+          <td>
+            <input type="number" 
+              id="qty_item_${item.id}"
+              value="0"
+              min="0" 
+              max="${remaining}"
+              style="width:80px;padding:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e8ecff;font-size:12px"
+              disabled
+              onchange="updateSelectionQuantity(${item.id}, this.value, ${remaining})">
+          </td>
+          <td>${item.unit}</td>
+          <td>${formatCurrency(item.unit_price)}</td>
+        </tr>
+      `;
+    });
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+    
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn green" onclick="createPackageFromSelection()">新增發包</button>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  renderPackages();
+  
+  // 重置选择状态
+  selectedItems = {};
+}
+
+function toggleItemSelection(itemId, checked, remaining){
+  if(checked){
+    selectedItems[itemId] = {
+      checked: true,
+      quantity: remaining // 预设输入满数值
+    };
+    const qtyInput = document.getElementById(`qty_item_${itemId}`);
+    if(qtyInput){
+      qtyInput.value = remaining;
+      qtyInput.disabled = false;
+    }
+  }else{
+    delete selectedItems[itemId];
+    const qtyInput = document.getElementById(`qty_item_${itemId}`);
+    if(qtyInput){
+      qtyInput.value = 0;
+      qtyInput.disabled = true;
+    }
+  }
+}
+
+function updateSelectionQuantity(itemId, quantity, maxQuantity){
+  const qty = parseFloat(quantity) || 0;
+  if(qty > maxQuantity){
+    alert(`數量不能超過剩餘可用數量 ${maxQuantity}`);
+    const qtyInput = document.getElementById(`qty_item_${itemId}`);
+    if(qtyInput) qtyInput.value = selectedItems[itemId]?.quantity || 0;
+    return;
+  }
+  if(selectedItems[itemId]){
+    selectedItems[itemId].quantity = qty;
+    if(qty <= 0){
+      delete selectedItems[itemId];
+      const checkbox = document.getElementById(`select_item_${itemId}`);
+      if(checkbox) checkbox.checked = false;
+      const qtyInput = document.getElementById(`qty_item_${itemId}`);
+      if(qtyInput) qtyInput.disabled = true;
+    }
+  }
+}
+
+function createPackageFromSelection(){
+  const selected = Object.keys(selectedItems).filter(id => {
+    const item = selectedItems[id];
+    return item.checked && item.quantity > 0;
+  });
+  
+  if(selected.length === 0){
+    alert("請至少選擇一個項目並輸入數量");
+    return;
+  }
+  
+  const packages = packageConfig[selectedContract.id] || [];
+  const packageIndex = packages.length;
+  
+  const items = selected.map(itemId => {
+    const item = selectedItems[itemId];
+    return {
+      quote_item_id: parseInt(itemId),
+      quantity: item.quantity
+    };
+  });
+  
+  packages.push({
+    packageIndex: packageIndex,
+    items: items
+  });
+  
+  packageConfig[selectedContract.id] = packages;
+  
+  // 清除选择
+  selectedItems = {};
+  
+  // 重新渲染
+  renderPackageConfig();
+}
+
+function removePackage(index){
+  const packages = packageConfig[selectedContract.id] || [];
+  packages.splice(index, 1);
+  // 重新編號
+  packages.forEach((pkg, idx) => {
+    pkg.packageIndex = idx;
+  });
+  packageConfig[selectedContract.id] = packages;
+  renderPackages();
+  renderPackageConfig(); // 重新渲染以更新已分配数量
+}
+
+function renderPackages(){
+  const container = document.getElementById("packagesContainer");
+  if(!container) return;
+  
+  const packages = packageConfig[selectedContract.id] || [];
+  
+  if(packages.length === 0){
+    container.innerHTML = '<div class="sub" style="padding:20px;text-align:center">請在下方勾選項目並點擊「新增發包」</div>';
+    return;
+  }
+  
+  let html = `
+    <div class="section">
+      <h3>已配置發包</h3>
+  `;
+  
+  packages.forEach((pkg, idx) => {
+    // 計算包的總金額
+    let totalAmount = 0;
+    const items = pkg.items.map(item => {
+      const quoteItem = selectedContract.quote_items.find(q => q.id === item.quote_item_id);
+      if(quoteItem){
+        const itemAmount = (item.quantity || 0) * quoteItem.unit_price;
+        totalAmount += itemAmount;
+        return {
+          quoteItem: quoteItem,
+          quantity: item.quantity || 0,
+          amount: itemAmount
+        };
+      }
+      return null;
+    }).filter(Boolean);
+    
+    // 按分類分組
+    const itemsByCategory = {};
+    items.forEach(item => {
+      const category = item.quoteItem.category;
+      if(!itemsByCategory[category]){
+        itemsByCategory[category] = [];
+      }
+      itemsByCategory[category].push(item);
+    });
+    
+    html += `
+      <div class="package-item" style="margin-bottom:16px">
+        <div class="package-header">
+          <div class="package-title">發包 ${getPackageNumber(idx + 1)}</div>
+          <div class="package-actions">
+            <button class="btn gray" style="padding:6px 12px;font-size:12px" onclick="removePackage(${idx})">刪除</button>
+          </div>
+        </div>
+        
+        <div style="margin-top:12px;font-size:12px">
+          <div style="margin-bottom:8px">
+            <b>項目：</b>${items.length} 項 | 
+            <b>總金額：</b>${formatCurrency(totalAmount)}
+          </div>
+          <table class="quote-table" style="font-size:12px;margin-top:8px">
+            <thead>
+              <tr>
+                <th style="width:5%">編號</th>
+                <th style="width:35%">項目名稱</th>
+                <th style="width:15%">分配數量</th>
+                <th style="width:15%">單位</th>
+                <th style="width:15%">單價</th>
+                <th style="width:15%">小計</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    let itemIndex = 1;
+    Object.keys(itemsByCategory).forEach(category => {
+      html += `<tr class="category-header"><td colspan="6">${category}</td></tr>`;
+      itemsByCategory[category].forEach(item => {
+        html += `
+          <tr>
+            <td>${itemIndex++}</td>
+            <td>${item.quoteItem.item_name}</td>
+            <td>${item.quantity}</td>
+            <td>${item.quoteItem.unit}</td>
+            <td>${formatCurrency(item.quoteItem.unit_price)}</td>
+            <td>${formatCurrency(item.amount)}</td>
+          </tr>
+        `;
+      });
+    });
+    
+    html += `
+              <tr class="total-row">
+                <td colspan="5" style="text-align:right">小計</td>
+                <td>${formatCurrency(totalAmount)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+
+function getPackageNumber(num){
+  const numbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+  return numbers[num - 1] || num;
+}
+
+function savePackageConfig(){
+  const packages = packageConfig[selectedContract.id] || [];
+  
+  // 驗證至少有一個包且每個包至少有一個項目
+  const validPackages = packages.filter(pkg => {
+    return pkg.items.length > 0 && pkg.items.some(item => item.quantity > 0);
+  });
+  
+  if(validPackages.length === 0){
+    alert("請至少配置一個發包，且每個發包至少包含一個項目");
+    return;
+  }
+  
+  // 驗證數量不超過總數
+  const quantityErrors = [];
+  selectedContract.quote_items.forEach(quoteItem => {
+    let totalAllocated = 0;
+    validPackages.forEach(pkg => {
+      const item = pkg.items.find(i => i.quote_item_id === quoteItem.id);
+      if(item) totalAllocated += item.quantity || 0;
+    });
+    if(totalAllocated > quoteItem.quantity){
+      quantityErrors.push(`${quoteItem.item_name} 分配數量(${totalAllocated})超過總數量(${quoteItem.quantity})`);
+    }
+  });
+  
+  if(quantityErrors.length > 0){
+    alert("數量驗證失敗：\n" + quantityErrors.join("\n"));
+    return;
+  }
+  
+  packageConfig[selectedContract.id] = validPackages;
+  closePackageModal();
+  renderContractDetail(selectedContract); // 重新渲染以顯示已配置的发包
+}
+
+function renderPackagesList(contract){
+  const packages = packageConfig[contract.id] || [];
+  const section = document.getElementById("packagesSection");
+  const list = document.getElementById("packagesList");
+  
+  if(packages.length === 0){
+    section.style.display = "none";
+    return;
+  }
+  
+  section.style.display = "block";
+  
+  // 計算每個項目的已派包數量（只計算已派包的）
+  const allocatedQuantities = {};
+  packages.forEach((pkg, idx) => {
+    const status = packageStatus[contract.id]?.[idx] || 'draft';
+    if(status === 'building' || status === 'sent'){
+      pkg.items.forEach(item => {
+        if(!allocatedQuantities[item.quote_item_id]){
+          allocatedQuantities[item.quote_item_id] = 0;
+        }
+        allocatedQuantities[item.quote_item_id] += item.quantity || 0;
+      });
+    }
+  });
+  
+  let html = `
+    <div style="margin-bottom:16px;padding:12px;background:rgba(106,163,255,.1);border-radius:8px">
+      <h4 style="margin:0 0 8px;font-size:14px">已派包統計</h4>
+      <table class="quote-table" style="font-size:12px">
+        <thead>
+          <tr>
+            <th style="width:5%">編號</th>
+            <th style="width:35%">項目名稱</th>
+            <th style="width:15%">總數量</th>
+            <th style="width:15%">已派包</th>
+            <th style="width:15%">剩餘</th>
+            <th style="width:15%">單位</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  // 按分類分組顯示
+  const itemsByCategory = {};
+  contract.quote_items.forEach(item => {
+    if(!itemsByCategory[item.category]){
+      itemsByCategory[item.category] = [];
+    }
+    itemsByCategory[item.category].push(item);
+  });
+  
+  let itemIndex = 1;
+  Object.keys(itemsByCategory).forEach(category => {
+    html += `<tr class="category-header"><td colspan="6">${category}</td></tr>`;
+    itemsByCategory[category].forEach(item => {
+      const allocated = allocatedQuantities[item.id] || 0;
+      const remaining = item.quantity - allocated;
+      html += `
+        <tr>
+          <td>${itemIndex++}</td>
+          <td>${item.item_name}</td>
+          <td>${item.quantity}</td>
+          <td style="color:${allocated > 0 ? '#3ddc97' : '#a7b0d6'}">${allocated}</td>
+          <td style="color:${remaining > 0 ? '#ffcc66' : '#ff6b6b'}">${remaining}</td>
+          <td>${item.unit}</td>
+        </tr>
+      `;
+    });
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  packages.forEach((pkg, idx) => {
+    const status = packageStatus[contract.id]?.[idx] || 'draft';
+    const statusText = {
+      'draft': '草稿',
+      'building': '建置中',
+      'sent': '已發包'
+    }[status] || '草稿';
+    
+    const statusColor = {
+      'draft': '#a7b0d6',
+      'building': '#ffcc66',
+      'sent': '#3ddc97'
+    }[status] || '#a7b0d6';
+    
+    // 計算包的總金額
+    let totalAmount = 0;
+    const items = pkg.items.map(item => {
+      const quoteItem = contract.quote_items.find(q => q.id === item.quote_item_id);
+      if(quoteItem){
+        const itemAmount = (item.quantity || 0) * quoteItem.unit_price;
+        totalAmount += itemAmount;
+        return {
+          quoteItem: quoteItem,
+          quantity: item.quantity || 0,
+          amount: itemAmount
+        };
+      }
+      return null;
+    }).filter(Boolean);
+    
+    html += `
+      <div class="package-item" style="margin-bottom:12px">
+        <div class="package-header">
+          <div>
+            <div class="package-title">發包 ${getPackageNumber(idx + 1)}</div>
+            <div style="font-size:12px;color:${statusColor};margin-top:4px">狀態：${statusText}</div>
+          </div>
+          <div class="package-actions">
+            ${status === 'draft' ? `
+              <button class="btn orange" style="padding:6px 12px;font-size:12px" onclick="sendPackage(${contract.id}, ${idx})">派包</button>
+            ` : ''}
+            ${status === 'building' ? `
+              <span style="color:#ffcc66;font-size:12px">建置中...</span>
+            ` : ''}
+            ${status === 'sent' ? `
+              <span style="color:#3ddc97;font-size:12px">已發包</span>
+            ` : ''}
+          </div>
+        </div>
+        
+        <div style="margin-top:12px;font-size:12px">
+          <div style="margin-bottom:8px">
+            <b>項目：</b>${items.length} 項 | 
+            <b>總金額：</b>${formatCurrency(totalAmount)}
+          </div>
+          <div style="color:#a7b0d6">
+            ${items.map(item => `${item.quoteItem.item_name} (${item.quantity} ${item.quoteItem.unit})`).join("、")}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  list.innerHTML = html;
+}
+
+function sendPackage(contractId, packageIndex){
+  if(!packageStatus[contractId]){
+    packageStatus[contractId] = {};
+  }
+  packageStatus[contractId][packageIndex] = 'building';
+  
+  // 重新渲染发包列表
+  if(selectedContract && selectedContract.id === contractId){
+    renderPackagesList(selectedContract);
+  }
+  
+  // TODO: 這裡可以調用API發送發包請求
+  console.log(`發送發包：合約 ${contractId}，發包 ${packageIndex}`);
+}
+
+// sendPackage 函數已移到 renderPackagesList 下方
+
+function formatCurrency(amount){
+  return "$ " + amount.toLocaleString('zh-TW');
+}
+
+// 初始化
+renderProjectList();
+</script>
+
+</body>
+</html>
