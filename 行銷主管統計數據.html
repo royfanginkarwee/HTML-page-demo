@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>行銷填單統計</title>
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:#0b1020;
+  color:#e8ecff;
+}
+.container{max-width:1200px;margin:auto;padding:24px;}
+h2{margin:0 0 6px;font-size:20px;}
+.sub{font-size:13px;color:#a7b0d6;margin-bottom:14px;}
+
+.card{
+  background:#111a33;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:16px;
+}
+
+/* 篩選區 */
+.filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  font-size:13px;
+}
+.filters label{color:#a7b0d6;}
+.filters input[type="month"]{
+  background:#0b1020;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;
+  padding:6px 8px;
+  color:#e8ecff;
+}
+.region-group{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.region-group label{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  cursor:pointer;
+}
+
+/* table */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+th,td{
+  border-bottom:1px solid rgba(255,255,255,.12);
+  padding:10px;
+  text-align:center;
+}
+th{color:#a7b0d6;font-weight:normal;}
+.total-row{
+  background:rgba(106,163,255,.12);
+  font-weight:bold;
+}
+.good{color:#3ddc97;}
+.bad{color:#ff6b6b;}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>行銷填單統計</h2>
+<div class="sub">可依月份區間與地區彙總行銷填單成效</div>
+
+<!-- 篩選條件 -->
+<div class="card">
+  <div class="filters">
+    <label>月份：</label>
+    <input type="month" id="startMonth" value="2025-10">
+    <span>～</span>
+    <input type="month" id="endMonth" value="2025-11">
+
+    <label style="margin-left:10px;">地區：</label>
+    <div class="region-group">
+      <label><input type="checkbox" checked value="北區"> 北區</label>
+      <label><input type="checkbox" checked value="桃園"> 桃園</label>
+      <label><input type="checkbox" checked value="台中"> 台中</label>
+      <label><input type="checkbox" checked value="彰化"> 彰化</label>
+    </div>
+  </div>
+</div>
+
+<!-- 結果表 -->
+<div class="card">
+<table>
+<thead>
+<tr>
+  <th>分店</th>
+  <th>總案件</th>
+  <th class="good">有效</th>
+  <th class="bad">無效</th>
+  <th>自來客</th>
+  <th>預算不足</th>
+  <th>重複填單</th>
+  <th>局部裝修</th>
+  <th>其他</th>
+</tr>
+</thead>
+<tbody id="resultBody"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const data = [
+  {month:'2025-10', region:'北區', total:120, valid:82, invalid:38, self:6, budget:18, dup:7, part:4, other:3},
+  {month:'2025-10', region:'桃園', total:96, valid:63, invalid:33, self:5, budget:15, dup:6, part:4, other:3},
+  {month:'2025-10', region:'台中', total:88, valid:59, invalid:29, self:4, budget:13, dup:5, part:4, other:3},
+  {month:'2025-10', region:'彰化', total:54, valid:37, invalid:17, self:3, budget:8, dup:3, part:2, other:1},
+
+  {month:'2025-11', region:'北區', total:134, valid:91, invalid:43, self:7, budget:20, dup:8, part:5, other:3},
+  {month:'2025-11', region:'桃園', total:102, valid:68, invalid:34, self:6, budget:15, dup:6, part:4, other:3},
+  {month:'2025-11', region:'台中', total:95, valid:64, invalid:31, self:5, budget:14, dup:6, part:4, other:2},
+  {month:'2025-11', region:'彰化', total:61, valid:42, invalid:19, self:3, budget:9, dup:3, part:2, other:2},
+];
+
+function render(){
+  const start = document.getElementById('startMonth').value;
+  const end = document.getElementById('endMonth').value;
+  const regions = [...document.querySelectorAll('.region-group input:checked')].map(i=>i.value);
+
+  const filtered = data.filter(d =>
+    d.month >= start &&
+    d.month <= end &&
+    regions.includes(d.region)
+  );
+
+  const sum = {};
+  filtered.forEach(d=>{
+    if(!sum[d.region]){
+      sum[d.region] = {...d, count:0};
+    }else{
+      Object.keys(d).forEach(k=>{
+        if(typeof d[k]==='number') sum[d.region][k]+=d[k];
+      });
+    }
+  });
+
+  let total = {total:0, valid:0, invalid:0, self:0, budget:0, dup:0, part:0, other:0};
+  let html = '';
+
+  Object.values(sum).forEach(d=>{
+    html+=`
+      <tr>
+        <td>${d.region}</td>
+        <td>${d.total}</td>
+        <td class="good">${d.valid}</td>
+        <td class="bad">${d.invalid}</td>
+        <td>${d.self}</td>
+        <td>${d.budget}</td>
+        <td>${d.dup}</td>
+        <td>${d.part}</td>
+        <td>${d.other}</td>
+      </tr>`;
+    Object.keys(total).forEach(k=>total[k]+=d[k]);
+  });
+
+  html+=`
+    <tr class="total-row">
+      <td>合計</td>
+      <td>${total.total}</td>
+      <td class="good">${total.valid}</td>
+      <td class="bad">${total.invalid}</td>
+      <td>${total.self}</td>
+      <td>${total.budget}</td>
+      <td>${total.dup}</td>
+      <td>${total.part}</td>
+      <td>${total.other}</td>
+    </tr>`;
+
+  document.getElementById('resultBody').innerHTML = html;
+}
+
+document.querySelectorAll('input').forEach(i=>i.addEventListener('change',render));
+render();
+</script>
+
+</body>
+</html>

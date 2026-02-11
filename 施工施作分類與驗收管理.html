@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>施工施作分類與驗收管理</title>
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:#0b1020;
+  color:#e8ecff;
+}
+.container{max-width:1280px;margin:auto;padding:24px;}
+h1{margin:0 0 8px;font-size:20px;}
+.sub{font-size:13px;color:#a7b0d6;margin-bottom:12px;}
+
+select{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.2);
+  background:#111a33;
+  color:#e8ecff;
+}
+
+.tabs{
+  display:flex;
+  gap:8px;
+  margin:14px 0;
+}
+.tab{
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  cursor:pointer;
+  font-size:13px;
+  color:#a7b0d6;
+}
+.tab.active{
+  background:#6aa3ff;
+  color:#0b1020;
+  border-color:#6aa3ff;
+}
+
+.card{
+  background:#111a33;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:14px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  border-bottom:1px solid rgba(255,255,255,.1);
+  padding:10px 8px;
+}
+th{
+  color:#a7b0d6;
+  font-weight:normal;
+  text-align:left;
+}
+
+input[type="text"], textarea{
+  width:100%;
+  padding:6px;
+  border-radius:6px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.35);
+  color:#e8ecff;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+.btn{
+  padding:8px 12px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-size:13px;
+  background:#6aa3ff;
+  color:#0b1020;
+}
+.btn.gray{background:#a7b0d6;}
+.btn.green{background:#3ddc97;}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>施工施作分類與驗收管理</h1>
+<div class="sub">工程報價子項目與施工驗收檢查表母資料管理</div>
+
+<!-- 主項目 -->
+<div style="margin-bottom:12px">
+  工程主項目：
+  <select id="mainSelect" onchange="renderTable()">
+    <option>拆除工程</option>
+    <option>水電工程</option>
+    <option>油漆工程</option>
+  </select>
+</div>
+
+<!-- 模式 -->
+<div class="tabs">
+  <div class="tab active" onclick="switchMode('sub')">子項目管理</div>
+  <div class="tab" onclick="switchMode('check')">驗收項目管理</div>
+</div>
+
+<div class="card">
+  <table>
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <div class="actions">
+    <button class="btn green" id="addBtn"></button>
+    <button class="btn gray">儲存變更</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+let mode = "sub";
+
+/* ===== 假資料（已擴充，貼近自主檢查表） ===== */
+const DATA = {
+  "拆除工程": {
+    sub: [
+      {active:true, name:"室內隔間拆除", unit:"坪", price:1040, note:"含清運"},
+      {active:true, name:"天花板拆除", unit:"式", price:4820, note:"PVC 天花"},
+      {active:false,name:"地坪拆除", unit:"坪", price:8200, note:"不含泥作"}
+    ],
+    check: [
+      {
+        active:true,
+        item:"施工前斷水斷電",
+        standard:"確認電源、水源完全關閉，並張貼警示標示",
+        note:"施工前"
+      },
+      {
+        active:true,
+        item:"門窗與地坪保護",
+        standard:"保護材完整覆蓋，無裸露區域",
+        note:"施工中"
+      },
+      {
+        active:true,
+        item:"結構體未破壞",
+        standard:"拆除後結構牆、梁柱無破損",
+        note:"施工中"
+      },
+      {
+        active:true,
+        item:"廢棄物清運完成",
+        standard:"現場無殘留廢料，公共區域清潔",
+        note:"完工"
+      },
+      {
+        active:false,
+        item:"完工照片存檔",
+        standard:"至少 3 張完工照，上傳系統",
+        note:"完工"
+      }
+    ]
+  },
+
+  "水電工程": {
+    sub: [
+      {active:true,name:"插座新增",unit:"處",price:1110,note:"含材料"},
+      {active:true,name:"燈具安裝",unit:"盞",price:560,note:"不含燈具"}
+    ],
+    check: [
+      {
+        active:true,
+        item:"配線標示完成",
+        standard:"所有回路標示清楚",
+        note:"施工中"
+      },
+      {
+        active:true,
+        item:"通電測試",
+        standard:"插座、開關測試正常",
+        note:"完工"
+      }
+    ]
+  },
+
+  "油漆工程": {
+    sub: [
+      {active:true,name:"牆面批土油漆",unit:"坪",price:2760,note:"ICI"},
+      {active:true,name:"天花板油漆",unit:"坪",price:1590,note:"白色"}
+    ],
+    check: [
+      {
+        active:true,
+        item:"批土平整",
+        standard:"無明顯刮痕、凹洞",
+        note:"施工中"
+      },
+      {
+        active:true,
+        item:"顏色一致",
+        standard:"同一牆面無色差",
+        note:"完工"
+      }
+    ]
+  }
+};
+
+function switchMode(m){
+  mode = m;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  event.target.classList.add("active");
+  renderTable();
+}
+
+function renderTable(){
+  const main = mainSelect.value;
+  const head = document.getElementById("tableHead");
+  const body = document.getElementById("tableBody");
+
+  body.innerHTML = "";
+
+  if(mode === "sub"){
+    head.innerHTML = `
+      <tr>
+        <th style="width:8%">啟用</th>
+        <th style="width:32%">內容</th>
+        <th style="width:15%">預設單位</th>
+        <th style="width:15%">建議單價</th>
+        <th>備註</th>
+      </tr>`;
+    addBtn.innerText = "＋ 新增子項目";
+
+    DATA[main].sub.forEach(r=>{
+      body.innerHTML += `
+        <tr>
+          <td><input type="checkbox" ${r.active?"checked":""}></td>
+          <td><input type="text" value="${r.name}"></td>
+          <td><input type="text" value="${r.unit}"></td>
+          <td><input type="text" value="${r.price}"></td>
+          <td><input type="text" value="${r.note}"></td>
+        </tr>`;
+    });
+  }
+
+  if(mode === "check"){
+    head.innerHTML = `
+      <tr>
+        <th style="width:8%">啟用</th>
+        <th style="width:28%">檢驗項目</th>
+        <th style="width:44%">檢驗標準</th>
+        <th>備註</th>
+      </tr>`;
+    addBtn.innerText = "＋ 新增驗收項目";
+
+    DATA[main].check.forEach(r=>{
+      body.innerHTML += `
+        <tr>
+          <td><input type="checkbox" ${r.active?"checked":""}></td>
+          <td><input type="text" value="${r.item}"></td>
+          <td><input type="text" value="${r.standard}"></td>
+          <td><input type="text" value="${r.note}"></td>
+        </tr>`;
+    });
+  }
+}
+
+function addRow(){
+  const body = document.getElementById("tableBody");
+
+  if(mode==="sub"){
+    body.innerHTML += `
+      <tr>
+        <td><input type="checkbox" checked></td>
+        <td><input placeholder="子項目內容"></td>
+        <td><input placeholder="單位"></td>
+        <td><input placeholder="單價"></td>
+        <td><input placeholder="備註"></td>
+      </tr>`;
+  }
+
+  if(mode==="check"){
+    body.innerHTML += `
+      <tr>
+        <td><input type="checkbox" checked></td>
+        <td><input placeholder="檢驗項目"></td>
+        <td><input placeholder="檢驗標準"></td>
+        <td><input placeholder="備註"></td>
+      </tr>`;
+  }
+}
+
+document.getElementById("addBtn").onclick = addRow;
+
+renderTable();
+</script>
+
+</body>
+</html>

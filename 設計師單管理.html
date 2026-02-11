@@ -1,0 +1,2206 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>設計師案件管理</title>
+
+<style>
+.task-row{
+  display: flex;
+  gap: 12px;
+}
+
+.task-row .card{
+  flex: 1;
+}
+
+.calendar-week{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  text-align:center;
+  font-size:12px;
+  color:#a7b0d6;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  position:sticky;
+  top:0;
+  background:#111a33;
+  z-index:2;
+}
+
+  .calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+}
+
+.calendar-head{
+  text-align:center;
+  font-size:12px;
+  color:#a7b0d6;
+}
+
+.calendar-cell{
+  height:130px; 
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  padding:6px;
+  font-size:12px;
+  display:flex;
+  flex-direction:column;
+}
+
+
+.calendar-cell .date{
+  font-size:11px;
+  color:#a7b0d6;
+  margin-bottom:4px;
+}
+
+.slot{
+  background:rgba(61,220,151,.2);
+  color:#3ddc97;
+  padding:2px 6px;
+  border-radius:999px;
+  font-size:11px;
+  margin-bottom:4px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.leave{
+  background:rgba(255,107,107,.25);
+  color:#ff6b6b;
+  padding:2px 6px;
+  border-radius:999px;
+  font-size:11px;
+  text-align:center;
+  margin-bottom:4px;
+}
+
+
+  .modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+}
+.modal.active{display:flex;}
+
+.modal-box{
+  background:#111a33;
+  border-radius:14px;
+  padding:16px;
+  border:1px solid rgba(255,255,255,.15);
+  max-height:90vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.leave{
+  color:#ff6b6b;
+  font-weight:500;
+}
+.slot{
+  color:#3ddc97;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:#0b1020;
+  color:#e8ecff;
+}
+.measure-layout{
+  display:flex;
+  gap:16px;
+  align-items:flex-start;
+}
+
+.measure-title{
+  width:90px;
+  font-size:15px;
+  line-height:1.4;
+  padding-top:6px;
+  flex-shrink:0;
+}
+
+.measure-form{
+  flex:1;
+}
+
+.measure-form .field{
+  margin-bottom:8px;
+}
+
+.measure-form h5{
+  margin:0 0 4px;
+  font-size:12px;
+  font-weight:normal;
+  color:#a7b0d6;
+}
+
+.container{max-width:1280px;margin:auto;padding:24px;}
+h1{margin:0;font-size:20px;}
+h3{margin:0 0 8px;font-size:15px;}
+.sub{font-size:13px;color:#a7b0d6;margin:8px 0 12px;}
+
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.tab{
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  cursor:pointer;
+  font-size:13px;
+  color:#a7b0d6;
+}
+.tab.active{background:#6aa3ff;color:#0b1020;border-color:#6aa3ff;}
+
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px;}
+
+.card{
+  background:#111a33;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:14px;
+}
+.modal-scroll{
+  overflow-y:auto;   /* scrollbar 出現的地方 */
+  padding-right:6px; /* 避免 scrollbar 壓到內容 */
+}
+
+
+.item{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+.item.active{
+  outline:2px solid #6aa3ff;
+  background:rgba(106,163,255,.15);
+}
+
+.tag{
+  display:inline-block;
+  font-size:12px;
+  padding:3px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  margin-right:6px;
+}
+.marketing{color:#6aa3ff;border-color:#6aa3ff;}
+.general{color:#ffcc66;border-color:#ffcc66;}
+.onsite{color:#3ddc97;border-color:#3ddc97;}
+
+.section{
+  margin-top:14px;
+  border-top:1px solid rgba(255,255,255,.1);
+  padding-top:10px;
+}
+.label{font-size:12px;color:#a7b0d6;margin-bottom:4px;}
+
+input,select,textarea{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.35);
+  color:#e8ecff;
+  margin-bottom:8px;
+}
+
+.actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.btn{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+  background:#6aa3ff;
+  color:#0b1020;
+}
+.btn.green{background:#3ddc97;}
+.btn.orange{background:#ffcc66;}
+.btn.gray{background:#a7b0d6;}
+.btn.purple{background:#a855f7;}
+
+.construction-tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  padding-bottom:8px;
+}
+.construction-tab{
+  padding:8px 16px;
+  cursor:pointer;
+  font-size:14px;
+  color:#a7b0d6;
+  border-bottom:2px solid transparent;
+  margin-bottom:-8px;
+}
+.construction-tab.active{
+  color:#6aa3ff;
+  border-bottom-color:#6aa3ff;
+}
+
+.construction-content{
+  display:none;
+}
+.construction-content.active{
+  display:block;
+}
+
+.quote-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  margin-top:12px;
+}
+.quote-table th,
+.quote-table td{
+  padding:8px;
+  text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.quote-table th{
+  color:#a7b0d6;
+  font-weight:normal;
+}
+.quote-table input[type="number"],
+.quote-table input[type="text"],
+.quote-table input[type="date"],
+.quote-table select{
+  width:100%;
+  padding:4px 6px;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:4px;
+  background:rgba(0,0,0,.35);
+  color:#e8ecff;
+  font-size:13px;
+}
+.quote-table input[type="date"]{
+  cursor:pointer;
+  pointer-events:auto;
+}
+.quote-table input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+}
+
+.check-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  margin-top:12px;
+}
+.check-table th,
+.check-table td{
+  padding:8px;
+  text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.check-table th{
+  color:#a7b0d6;
+  font-weight:normal;
+}
+
+.total-row{
+  font-weight:bold;
+  background:rgba(106,163,255,.1);
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>設計師案件管理 流程 A.3 ~ E</h1>
+
+<div class="tabs" id="statusTabs"></div>
+
+<div class="grid">
+  <div class="card" id="list"></div>
+  <div class="card" id="detail">
+    <div class="sub">請選擇左側案件</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const STAFF = ["阿國","小林","外包-王"];
+let selectedStaff = new Set(STAFF);
+
+let currentMonth = new Date();
+currentMonth.setDate(1);
+
+function fakeSchedule(year, month){
+  const data = {};
+  STAFF.forEach(staff=>{
+    for(let d=1; d<=31; d++){
+      const date = new Date(year, month, d);
+      if(date.getMonth() !== month) continue;
+      const day = date.getDay();
+      if(day===0 || day===6) continue;
+
+      const key = date.toISOString().slice(0,10);
+      if(!data[key]) data[key] = [];
+
+      const isLeave = Math.random() < 0.1;
+
+      data[key].push({
+        staff,
+        is_leave: isLeave,
+        slots: isLeave ? [] : [{
+          start: "09:00",
+          end: "11:00"
+        }]
+      });
+    }
+  });
+  return data;
+}
+function renderStaffFilter(){
+  const box = document.getElementById("staffFilter");
+  box.innerHTML = STAFF.map(s=>`
+    <label style="margin-right:8px;font-size:12px">
+      <input type="checkbox" checked onchange="
+        this.checked ? selectedStaff.add('${s}') : selectedStaff.delete('${s}');
+        renderCalendar();
+      ">
+      ${s}
+    </label>
+  `).join("");
+}
+let calendarData = {};
+
+function renderCalendar(){
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  calendarData = fakeSchedule(year, month);
+
+  document.getElementById("monthLabel").innerText =
+    `${year} / ${month+1}`;
+
+  const grid = document.getElementById("calendarGrid");
+  grid.innerHTML = "";
+
+  const firstDay = new Date(year, month, 1).getDay() || 7;
+  for(let i=1;i<firstDay;i++) grid.innerHTML += `<div></div>`;
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(year, month, d);
+    const key = date.toISOString().slice(0,10);
+    const records = (calendarData[key] || []).filter(r=>selectedStaff.has(r.staff));
+
+    let html = `<div class="calendar-cell">
+      <div class="date">${d}</div>`;
+
+const MAX_ITEMS = 3;
+let count = 0;
+
+records.forEach(r=>{
+  if(count >= MAX_ITEMS) return;
+
+  if(r.is_leave){
+    html += `<div class="leave">${r.staff} 請假</div>`;
+    count++;
+  }else{
+    r.slots.forEach(s=>{
+      if(count >= MAX_ITEMS) return;
+      html += `<div class="slot">${r.staff} ${s.start}-${s.end}</div>`;
+      count++;
+    });
+  }
+});
+
+if(records.length > MAX_ITEMS){
+  html += `<div class="more">＋${records.length - MAX_ITEMS} 筆</div>`;
+}
+
+
+    html += `</div>`;
+    grid.innerHTML += html;
+  }
+}
+
+function openCalendar(){
+  document.getElementById("calendarModal").classList.add("active");
+  renderStaffFilter();
+  renderCalendar();
+}
+
+function closeCalendar(){
+  document.getElementById("calendarModal").classList.remove("active");
+}
+
+function changeMonth(delta){
+  currentMonth.setMonth(currentMonth.getMonth() + delta);
+  renderCalendar();
+}
+
+
+
+const STATUS = [
+  ["contact","聯絡關懷中"],
+  ["measure","待丈量\n<丈量人員只看得到這部分，且可操作>"],
+  ["signing","待簽約\n<報價人員與繪圖專員只看得到這部分，且可操作>"],
+  ["material","待選材"],
+  ["outsourcing","發包中"],
+  ["construction","施作中"],
+  ["acceptance","驗收中"],
+  ["closed","已結案"]
+];
+
+let currentStatus="contact";
+let selectedId=null;
+const cases = [
+/* ===== 聯絡關懷中 ===== */
+{
+  id: 1,
+  status: "contact",
+  source: "marketing",
+  customer: {
+    name: "陳小姐",
+    phone: "0912-123-456",
+    line: "chen_home",
+    region: "台北市",
+    address: "大安區復興南路",
+    house: "舊屋翻新",
+    budget: "120萬",
+    note: "有小孩，希望收納多",
+    assigned_designer_at: "2026/02/03"
+  },
+  designer: {
+    note: "已加 LINE，晚間回電"
+  }
+},
+{
+  id: 2,
+  status: "contact",
+  source: "general",
+  customer: {
+    name: "林先生",
+    phone: "0988-555-111",
+    line: "lin_design",
+    region: "新北市",
+    address: "板橋區文化路",
+    house: "新成屋",
+    budget: "未提供",
+    note: "老婆主導討論",
+    assigned_designer_at: "2026/01/03"
+  },
+  designer: {
+    note: "尚未接通"
+  }
+},
+
+/* ===== 待丈量 ===== */
+{
+  id: 3,
+  status: "measure",
+  source: "onsite",
+  customer: {
+    name: "張小姐",
+    phone: "0977-333-444",
+    line: "chang_tc",
+    region: "台中市",
+    address: "西屯區文心路",
+    house: "舊屋翻新",
+    budget: "150萬",
+    note: "現場諮詢轉單",
+    assigned_designer_at: "2026/01/30"
+  },
+  designer: {
+    note: "已初步說明流程"
+  },
+  measurement: {
+    staff: "阿國",
+    date: "2026-01-15"
+  },
+  contract: {
+    template: "A"
+  }
+},
+{
+  id: 4,
+  status: "measure",
+  source: "marketing",
+  customer: {
+    name: "吳先生",
+    phone: "0933-222-999",
+    line: "wu_home",
+    region: "桃園市",
+    address: "中壢區環中路",
+    house: "新成屋",
+    budget: "180萬",
+    note: "三房兩廳",
+    assigned_designer_at: "2026/01/04"
+  },
+  designer: {
+    note: "等待丈量確認"
+  },
+  measurement: {
+    staff: "小林",
+    date: "2026-01-18"
+  },
+  contract: {
+    template: "B"
+  }
+},
+
+
+/* ===== 待簽約（含草約 / 繪圖 / 報價） ===== */
+{
+  id: 7,
+  status: "signing",
+  source: "onsite",
+  customer: {
+    name: "黃小姐",
+    phone: "0911-444-222",
+    line: "huang_home",
+    region: "高雄市",
+    address: "左營區博愛路",
+    house: "新成屋",
+    budget: "300萬",
+    note: "急件，希望年前動工",
+    assigned_designer_at: "2026/02/03"
+  },
+  designer: {
+    note: "草約與報價已完成"
+  },
+  drawing: {
+    drawer: "自己",
+    quoter: "自己"
+  },
+  contract: {
+    template: "B",
+    images: 4,
+    external_group: false
+  }
+},
+{
+  id: 8,
+  status: "signing",
+  source: "marketing",
+  customer: {
+    name: "劉先生",
+    phone: "0900-123-999",
+    line: "liu_design",
+    region: "台北市",
+    address: "士林區天母",
+    house: "舊屋翻新",
+    budget: "220萬",
+    note: "重視施工細節",
+    assigned_designer_at: "2026/02/03"
+  },
+  designer: {
+    note: "等待客戶最終確認"
+  },
+  drawing: {
+    drawer: "繪圖A",
+    quoter: "報價B"
+  },
+  contract: {
+    template: "A",
+    images: 5,
+    external_group: true
+  },
+  tasks: {
+    measure: {
+      done: true,
+      finished_at: "2026-01-18"
+    },
+    drawing: {
+      done: false,
+      finished_at: null
+    }
+  }
+},
+
+/* ===== 已簽約 ===== */
+{
+  id: 9,
+  status: "signed",
+  source: "general",
+  customer: {
+    name: "何小姐",
+    phone: "0988-000-321",
+    line: "ho_home",
+    region: "台中市",
+    address: "南屯區公益路",
+    house: "新成屋",
+    budget: "190萬",
+    note: "已完成簽約",
+    assigned_designer_at: "2026/02/13"
+  },
+  designer: {
+    note: "等待選材"
+  },
+  contract: {
+    template: "B",
+    sign_date: "2026-01-05",
+    material_date: "2026-01-20"
+  }
+},
+{
+  id: 10,
+  status: "signed",
+  source: "marketing",
+  customer: {
+    name: "趙先生",
+    phone: "0966-777-888",
+    line: "chao_home",
+    region: "新北市",
+    address: "新莊區中正路",
+    house: "舊屋翻新",
+    budget: "260萬",
+    note: "全案統包",
+    assigned_designer_at: "2026/02/03"
+  },
+  designer: {
+    note: "已交付工程端"
+  },
+  contract: {
+    template: "A",
+    sign_date: "2026-01-08",
+    material_date: "2026-01-25"
+  }
+},
+
+/* ===== 待選材 ===== */
+{
+  id: 11,
+  status: "material",
+  source: "general",
+  customer: {
+    name: "鄭小姐",
+    phone: "0939-888-222",
+    line: "cheng_home",
+    region: "桃園市",
+    address: "龜山區文化一路",
+    house: "新成屋",
+    budget: "210萬",
+    note: "偏好木質調",
+    assigned_designer_at: "2026/01/05"
+  },
+  designer: {
+    note: "已安排選材"
+  },
+  contract: {
+    template: "B",
+    material_date: "2026-01-22"
+  }
+},
+{
+  id: 12,
+  status: "material",
+  source: "onsite",
+  customer: {
+    name: "周先生",
+    phone: "0910-333-666",
+    line: "chou_home",
+    region: "台北市",
+    address: "內湖區瑞光路",
+    house: "舊屋翻新",
+    budget: "240萬",
+    note: "夫妻共同選材",
+    assigned_designer_at: "2026/01/03"
+  },
+  designer: {
+    note: "樣品準備中"
+  },
+  contract: {
+    template: "A",
+    material_date: "2026-01-28"
+  }
+},
+
+/* ===== 發包中 ===== */
+{
+  id: 21,
+  status: "outsourcing",
+  source: "marketing",
+  customer: { name: "孫小姐", phone: "0922-111-777", line: "sun_home", region: "新北市", address: "永和區中正路", house: "新成屋", budget: "280萬", note: "選材已完成，待發包", assigned_designer_at: "2026/01/10" },
+  designer: { note: "已與客戶確認選材清單" },
+  measurement: { staff: "阿國", date: "2025-12-20" },
+  drawing: { drawer: "繪圖A", quoter: "報價B" },
+  contract: { template: "B", sign_date: "2026/01/05", material_date: "2026/01/18", external_group: true, images: 6 },
+  tasks: { measure: { done: true, finished_at: "2025-12-22" }, drawing: { done: true, finished_at: "2025-12-28" } },
+  outsourcing: { assigned_at: "2026/02/01", contractor: "王師傅工班", quote_sent_at: "2026/02/03", expected_start: "2026/02/15", note: "拆除＋水電先行" }
+},
+{
+  id: 22,
+  status: "outsourcing",
+  source: "general",
+  customer: { name: "錢先生", phone: "0955-666-333", line: "chien_design", region: "桃園市", address: "桃園區中山路", house: "舊屋翻新", budget: "200萬", note: "發包報價審核中", assigned_designer_at: "2026/01/15" },
+  designer: { note: "工班已報價，待客戶確認" },
+  measurement: { staff: "小林", date: "2025-12-25" },
+  drawing: { drawer: "自己", quoter: "自己" },
+  contract: { template: "A", sign_date: "2026/01/12", material_date: "2026/01/25", external_group: false, images: 5 },
+  tasks: { measure: { done: true, finished_at: "2025-12-26" }, drawing: { done: true, finished_at: "2026/01/02" } },
+  outsourcing: { assigned_at: "2026/02/05", contractor: "李師傅統包", quote_sent_at: "2026/02/06", expected_start: "2026/02/20", note: "全案統包，含泥作與木工" }
+},
+
+/* ===== 施作中 ===== */
+{
+  id: 31,
+  status: "construction",
+  source: "onsite",
+  customer: { name: "謝小姐", phone: "0933-444-888", line: "hsieh_home", region: "台北市", address: "信義區松仁路", house: "舊屋翻新", budget: "350萬", note: "施工中，拆除已完成", assigned_designer_at: "2025/11/01" },
+  designer: { note: "每週三現場會勘" },
+  measurement: { staff: "阿國", date: "2025-11-10" },
+  drawing: { drawer: "繪圖A", quoter: "報價B" },
+  contract: { template: "A", sign_date: "2025/11/25", material_date: "2025/12/05", external_group: true, images: 8 },
+  tasks: { measure: { done: true, finished_at: "2025/11/12" }, drawing: { done: true, finished_at: "2025/11/18" } },
+  outsourcing: { assigned_at: "2025/11/28", contractor: "王師傅工班", quote_sent_at: "2025/11/30", expected_start: "2025/12/10", note: "" },
+  construction: { actual_start: "2025/12/10", expected_end: "2026/03/15", progress: 35, current_phase: "水電配管", gantt_updated_at: "2026/02/10", note: "水電完成後進泥作" }
+},
+{
+  id: 32,
+  status: "construction",
+  source: "marketing",
+  customer: { name: "馮先生", phone: "0977-222-555", line: "feng_home", region: "台中市", address: "北區三民路", house: "新成屋", budget: "180萬", note: "木作進場中", assigned_designer_at: "2025/12/01" },
+  designer: { note: "系統櫃已下單" },
+  measurement: { staff: "小林", date: "2025/12/05" },
+  drawing: { drawer: "自己", quoter: "小王" },
+  contract: { template: "B", sign_date: "2025/12/20", material_date: "2026/01/05", external_group: true, images: 4 },
+  tasks: { measure: { done: true, finished_at: "2025/12/06" }, drawing: { done: true, finished_at: "2025/12/12" } },
+  outsourcing: { assigned_at: "2025/12/22", contractor: "李師傅統包", quote_sent_at: "2025/12/23", expected_start: "2026/01/08", note: "" },
+  construction: { actual_start: "2026/01/08", expected_end: "2026/03/01", progress: 55, current_phase: "系統櫃安裝", gantt_updated_at: "2026/02/08", note: "油漆排程 2/20" }
+},
+
+/* ===== 驗收中 ===== */
+{
+  id: 41,
+  status: "acceptance",
+  source: "general",
+  customer: { name: "曹小姐", phone: "0918-999-111", line: "tsao_home", region: "新北市", address: "新店區北新路", house: "舊屋翻新", budget: "320萬", note: "水電與油漆已驗收", assigned_designer_at: "2025/10/01" },
+  designer: { note: "待完工驗收與尾款" },
+  measurement: { staff: "阿國", date: "2025/10/15" },
+  drawing: { drawer: "繪圖A", quoter: "報價B" },
+  contract: { template: "A", sign_date: "2025/10/28", material_date: "2025/11/10", external_group: true, images: 10 },
+  tasks: { measure: { done: true, finished_at: "2025/10/17" }, drawing: { done: true, finished_at: "2025/10/22" } },
+  outsourcing: { assigned_at: "2025/11/01", contractor: "王師傅工班", quote_sent_at: "2025/11/02", expected_start: "2025/11/15", note: "" },
+  construction: { actual_start: "2025/11/15", expected_end: "2026/02/20", progress: 95, current_phase: "細清", gantt_updated_at: "2026/02/10", note: "" },
+  acceptance: { water_electric_done: true, water_electric_at: "2026/01/25", paint_done: true, paint_at: "2026/02/05", final_done: false, final_at: null, ng_count: 2, note: "兩處油漆補漆後複驗" }
+},
+{
+  id: 42,
+  status: "acceptance",
+  source: "onsite",
+  customer: { name: "曾先生", phone: "0944-777-222", line: "tseng_design", region: "高雄市", address: "鼓山區美術館路", house: "新成屋", budget: "250萬", note: "完工驗收預約中", assigned_designer_at: "2025/11/15" },
+  designer: { note: "客戶可配合 2/15 驗收" },
+  measurement: { staff: "小林", date: "2025/11/22" },
+  drawing: { drawer: "小蔡", quoter: "小林" },
+  contract: { template: "B", sign_date: "2025/12/05", material_date: "2025/12/18", external_group: true, images: 6 },
+  tasks: { measure: { done: true, finished_at: "2025/11/24" }, drawing: { done: true, finished_at: "2025/11/30" } },
+  outsourcing: { assigned_at: "2025/12/08", contractor: "李師傅統包", quote_sent_at: "2025/12/09", expected_start: "2025/12/20", note: "" },
+  construction: { actual_start: "2025/12/20", expected_end: "2026/02/10", progress: 100, current_phase: "完工", gantt_updated_at: "2026/02/09", note: "" },
+  acceptance: { water_electric_done: true, water_electric_at: "2026/01/15", paint_done: true, paint_at: "2026/01/28", final_done: false, final_at: null, ng_count: 0, note: "待排完工驗收" }
+},
+
+/* ===== 已結案 ===== */
+{
+  id: 51,
+  status: "closed",
+  source: "marketing",
+  customer: { name: "彭小姐", phone: "0988-333-666", line: "peng_home", region: "台北市", address: "中山區南京東路", house: "舊屋翻新", budget: "380萬", note: "已結案，客戶滿意", assigned_designer_at: "2025/08/01" },
+  designer: { note: "結案回訪完成" },
+  measurement: { staff: "阿國", date: "2025/08/15" },
+  drawing: { drawer: "繪圖A", quoter: "報價B" },
+  contract: { template: "A", sign_date: "2025/08/28", material_date: "2025/09/10", external_group: true, images: 12 },
+  tasks: { measure: { done: true, finished_at: "2025/08/17" }, drawing: { done: true, finished_at: "2025/08/25" } },
+  outsourcing: { assigned_at: "2025/09/15", contractor: "王師傅工班", quote_sent_at: "2025/09/16", expected_start: "2025/09/25", note: "" },
+  construction: { actual_start: "2025/09/25", expected_end: "2025/12/20", progress: 100, current_phase: "完工", gantt_updated_at: "2025/12/18", note: "" },
+  acceptance: { water_electric_done: true, water_electric_at: "2025/11/20", paint_done: true, paint_at: "2025/12/05", final_done: true, final_at: "2025/12/18", ng_count: 0, note: "" },
+  closed: { closed_at: "2025/12/20", final_payment_at: "2025/12/22", warranty_start: "2025/12/20", satisfaction: "滿意", note: "保固書已交付" }
+},
+{
+  id: 52,
+  status: "closed",
+  source: "general",
+  customer: { name: "呂先生", phone: "0922-555-999", line: "lu_design", region: "新北市", address: "中和區景平路", house: "新成屋", budget: "220萬", note: "已結案", assigned_designer_at: "2025/09/10" },
+  designer: { note: "案場結案" },
+  measurement: { staff: "小林", date: "2025/09/18" },
+  drawing: { drawer: "自己", quoter: "小王" },
+  contract: { template: "B", sign_date: "2025/09/28", material_date: "2025/10/08", external_group: false, images: 7 },
+  tasks: { measure: { done: true, finished_at: "2025/09/20" }, drawing: { done: true, finished_at: "2025/09/25" } },
+  outsourcing: { assigned_at: "2025/10/05", contractor: "李師傅統包", quote_sent_at: "2025/10/06", expected_start: "2025/10/15", note: "" },
+  construction: { actual_start: "2025/10/15", expected_end: "2026/01/10", progress: 100, current_phase: "完工", gantt_updated_at: "2026/01/08", note: "" },
+  acceptance: { water_electric_done: true, water_electric_at: "2025/12/01", paint_done: true, paint_at: "2025/12/20", final_done: true, final_at: "2026/01/08", ng_count: 1, note: "一處補漆後通過" },
+  closed: { closed_at: "2026/01/10", final_payment_at: "2026/01/12", warranty_start: "2026/01/10", satisfaction: "滿意", note: "" }
+}
+];
+
+
+const tabs=document.getElementById("statusTabs");
+const list=document.getElementById("list");
+const detail=document.getElementById("detail");
+
+STATUS.forEach(([k,label])=>{
+  const t=document.createElement("div");
+  t.className="tab"+(k===currentStatus?" active":"");
+  t.innerText=label;
+  t.onclick=()=>{
+    currentStatus=k;
+    selectedId=null;
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    render();
+  };
+  tabs.appendChild(t);
+});
+
+function render(){
+  list.innerHTML="";
+  detail.innerHTML="<div class='sub'>請選擇左側案件</div>";
+
+  cases.filter(c=>c.status===currentStatus).forEach(c=>{
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML=`<b>${c.customer.name} (要新增一鍵開啟 line works 個人對話匡連結 or 若以建立外部群組則開啟外部群組)</b>`;
+    d.onclick=()=>renderDetail(c);
+    list.appendChild(d);
+  });
+}
+
+function renderDetail(c){
+  let extra="";
+
+  // 根據狀態顯示前面階段的資料
+  let showContact = false; // 聯絡關懷中
+  let showMeasure = false; // 待丈量
+  let showSigning = false; // 待簽約
+  
+  const laterStatuses = ["measure","signing","material","outsourcing","construction","acceptance","closed"];
+  if(c.status === "contact"){
+    showContact = true;
+  } else if(laterStatuses.includes(c.status)){
+    showContact = true;
+    showMeasure = true;
+    showSigning = true;
+  }
+
+  // 聯絡關懷中階段
+  if(showContact){
+    extra += `
+      <div class="section">
+        <h3>設計師紀錄（聯絡關懷中）</h3>
+        <textarea
+          rows="3"
+          placeholder="請輸入聯絡關懷備註"
+          ${c.status !== "contact" ? "disabled" : ""}
+        >${c.designer?.note || c.contact?.followup_note || ""}</textarea>
+      </div>`;
+    
+    if(c.status === "contact"){
+      extra += `
+        <div class="section">
+          <h3>合約模板</h3>
+          <div class="card" style="margin-bottom:8px">
+            ${c.contract?.template 
+              ? `<b>已選擇模板：</b>${getTemplateName(c.contract.template)}<br>`
+              : `<b>狀態：</b>尚未選擇模板<br>`}
+          </div>
+          <button class="btn orange" onclick="openContractTemplate(${c.id})">${c.contract?.template ? '編輯合約模板' : '選擇合約模板'}</button>
+        </div>
+        <div class="section measure-layout">
+          <h3 class="measure-title">丈量安排</h3>
+          <div class="measure-form">
+            <div class="field">
+              <h5>丈量日期</h5>
+              <input type="date">
+            </div>
+            <div class="field">
+              <h5>丈量時間</h5>
+              <input type="time">
+            </div>
+            <div class="field">
+              <h5>丈量人員</h5>
+              <select>
+                <option>阿國</option>
+                <option>小林</option>
+                <option>外包丈量</option>
+              </select>
+            </div>
+            <button class="btn green">確定丈量日</button>
+            <button class="btn gray" onclick="openCalendar()">查看工務行事曆（LINE WORKS）</button>
+          </div>
+        </div>`;
+    }
+  }
+
+  // 待丈量階段
+  if(showMeasure){
+    extra += `
+      <div class="section">
+        <h3>前置任務進度（待丈量）</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>丈量任務</b><br>
+          狀態：
+          ${c.tasks?.measure?.done
+            ? `✅ 已完成（${c.tasks.measure.finished_at}）`
+            : `⏳ 進行中`}
+        </div>
+      </div>`;
+    
+    if(c.status === "measure"){
+      extra += `
+        <div class="section">
+          <h3>合約模板</h3>
+          <div class="card" style="margin-bottom:8px">
+            ${c.contract?.template 
+              ? `<b>已選擇模板：</b>${getTemplateName(c.contract.template)}<br>`
+              : `<b>狀態：</b>尚未選擇模板<br>`}
+          </div>
+        </div>
+        <div class="section measure-layout">
+          <h3 class="measure-title">丈量 / 繪圖安排</h3>
+          <div class="measure-form">
+            <div class="field">
+              <h5>丈量日期</h5>
+              <input type="date" value="${c.measurement?.date||""}">
+            </div>
+            <div class="field">
+              <h5>丈量人員</h5>
+              <select>
+                <option ${c.measurement?.staff==="阿國"?"selected":""}>阿國</option>
+                <option ${c.measurement?.staff==="小林"?"selected":""}>小林</option>
+                <option>外包丈量</option>
+              </select>
+            </div>
+            <div class="field">
+              <h5>繪圖人員(丈量完成後發任務卡)</h5>
+              <select>
+                <option>設計師</option>
+                <option>小蔡</option>
+                <option>外包繪圖</option>
+              </select>
+            </div>
+            <div class="field">
+              <h5>報價人員(丈量完成後發任務卡)</h5>
+              <select>
+                <option>預設</option>
+                <option>小王</option>
+                <option>小林</option>
+              </select>
+            </div>
+            <button class="btn green">確認丈量完成</button>
+            <button class="btn">上傳丈量圖面</button>
+            <button class="btn gray" onclick="openCalendar()">查看行事曆（繪圖人員/報價專員）（串LINE WORKS）</button>
+          </div>
+        </div>`;
+    }
+  }
+
+  // 待簽約階段
+  if(showSigning){
+    extra += `
+      <div class="section">
+        <h3>前置任務進度（待簽約）</h3>
+        <div class="task-row">
+          <div class="card">
+            <b>繪圖任務</b><br>
+            繪圖人員：${c.drawing?.drawer || "未設定"}<br>
+            審核人員：<br>
+            狀態：
+            ${c.tasks?.drawing?.done
+              ? `✅ 已完成（${c.tasks.drawing.finished_at}）`
+              : `⏳ 進行中`}<br>
+            審核日： 2026/01/02
+          </div>
+          <div class="card">
+            <b>報價任務</b><br>
+            報價人員：${c.drawing?.quoter || "未設定"}<br>
+            審核人員：<br>
+            狀態：
+            ${c.tasks?.drawing?.done
+              ? `✅ 已完成（${c.tasks.drawing.finished_at}）`
+              : `⏳ 進行中`}<br>
+            審核日： 2026/01/03
+          </div>
+        </div>
+      </div>`;
+    
+    if(c.status === "signing"){
+      extra += `
+        <div class="section">
+          <h3>合約模板</h3>
+          <div class="card" style="margin-bottom:8px">
+            ${c.contract?.template 
+              ? `<b>已選擇模板：</b>${getTemplateName(c.contract.template)}<br>`
+              : `<b>狀態：</b>尚未選擇模板<br>`}
+          </div>
+        </div>
+        <div class="section">
+          <h3>簽約前作業</h3>
+          <div class="section">
+            <h3>簽約資訊</h3>
+            <div class="field">
+              <h5>簽約日期</h5>
+              <input type="date" value="${c.contract?.sign_date||""}">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn">建立外部群組</button>
+            <button class="btn purple" onclick="openConstructionManagement()">施工管理</button>
+            <button class="btn gray">查看所有圖片</button>
+            ${c.contract?.template 
+              ? `<button class="btn orange" onclick="previewContractTemplate(${c.id})">預覽合約</button>`
+              : `<button class="btn orange" disabled title="請先在聯絡關懷中階段選擇合約模板">建立合約</button>`}
+            <button class="btn green" onclick="document.getElementById('signBlock').style.display='block'">馬上簽約</button>
+          </div>
+          <div id="signBlock" style="display:none;margin-top:12px">
+            <div class="label">簽名板（Demo）</div>
+            <div style="height:120px;border:1px dashed rgba(255,255,255,.3);border-radius:8px;margin-bottom:8px"></div>
+            <input type="date" placeholder="選材日">
+          </div>
+        </div>`;
+    } else if(["material","outsourcing","construction","acceptance","closed"].includes(c.status)){
+      // 顯示已簽約的資訊（唯讀）
+      extra += `
+        <div class="section">
+          <h3>簽約資訊</h3>
+          <div class="card" style="margin-bottom:8px">
+            <b>簽約日期：</b>${c.contract?.sign_date || "未設定"}<br>
+            <b>外部群組：</b>${c.contract?.external_group ? "已建立" : "未建立"}<br>
+            <b>圖片數量：</b>${c.contract?.images || 0} 張
+          </div>
+        </div>`;
+    }
+  }
+
+  // 待選材階段（可編輯僅在 material）
+  if(c.status === "material"){
+    extra += `
+      <div class="section">
+        <h3>合約模板</h3>
+        <div class="card" style="margin-bottom:8px">
+          ${c.contract?.template 
+            ? `<b>已選擇模板：</b>${getTemplateName(c.contract.template)}<br>`
+            : `<b>狀態：</b>尚未選擇模板<br>`}
+          <span style="font-size:12px;color:#a7b0d6">（聯絡關懷中階段已確定，不可編輯）</span>
+        </div>
+      </div>
+      <div class="section">
+        <h3>選材資訊</h3>
+        <div class="field">
+          <h5>選材日期</h5>
+          <input type="date" value="${c.contract?.material_date||""}">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn purple">展開選材表</button>
+        <button class="btn orange" onclick="previewContractTemplate(${c.id})">查看合約</button>
+        <button class="btn gray">查看所有圖片</button>
+      </div>`;
+  }
+  // 發包中／施作中／驗收中／已結案：顯示選材資訊（唯讀）
+  if(["outsourcing","construction","acceptance","closed"].includes(c.status)){
+    extra += `
+      <div class="section">
+        <h3>選材資訊（繼承）</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>選材日期：</b>${c.contract?.material_date || "未設定"}<br>
+          <b>合約模板：</b>${c.contract?.template ? getTemplateName(c.contract.template) : "未設定"}
+        </div>
+      </div>`;
+  }
+
+  // 發包中
+  if(c.status === "outsourcing"){
+    const o = c.outsourcing || {};
+    extra += `
+      <div class="section">
+        <h3>發包中</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>發包指派日：</b>${o.assigned_at || "未設定"}<br>
+          <b>承包方：</b>${o.contractor || "未設定"}<br>
+          <b>報價送出日：</b>${o.quote_sent_at || "未設定"}<br>
+          <b>預估開工日：</b>${o.expected_start || "未設定"}<br>
+          ${o.note ? `<b>備註：</b>${o.note}` : ""}
+        </div>
+        <div class="actions">
+          <button class="btn purple" onclick="openConstructionManagement()">施工管理（報價／甘特／驗收）</button>
+          <button class="btn gray">查看所有圖片</button>
+        </div>
+      </div>`;
+  }
+
+  // 施作中（繼承發包資料＋施作進度）
+  if(c.status === "construction"){
+    const o = c.outsourcing || {};
+    const con = c.construction || {};
+    extra += `
+      <div class="section">
+        <h3>發包資訊（繼承）</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>承包方：</b>${o.contractor || "未設定"}<br>
+          <b>預估開工日：</b>${o.expected_start || "未設定"}
+        </div>
+      </div>
+      <div class="section">
+        <h3>施作中</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>實際開工日：</b>${con.actual_start || "未設定"}<br>
+          <b>預估完工日：</b>${con.expected_end || "未設定"}<br>
+          <b>進度：</b>${con.progress != null ? con.progress + "%" : "未設定"}<br>
+          <b>目前階段：</b>${con.current_phase || "未設定"}<br>
+          <b>甘特圖更新：</b>${con.gantt_updated_at || "未設定"}<br>
+          ${con.note ? `<b>備註：</b>${con.note}` : ""}
+        </div>
+        <div class="actions">
+          <button class="btn purple" onclick="openConstructionManagement()">施工管理（報價／甘特／驗收）</button>
+          <button class="btn gray">查看所有圖片</button>
+        </div>
+      </div>`;
+  }
+
+  // 驗收中（繼承發包＋施作＋驗收進度）
+  if(c.status === "acceptance"){
+    const o = c.outsourcing || {};
+    const con = c.construction || {};
+    const acc = c.acceptance || {};
+    extra += `
+      <div class="section">
+        <h3>發包／施作（繼承）</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>承包方：</b>${o.contractor || "未設定"}<br>
+          <b>目前階段：</b>${con.current_phase || "未設定"}<br>
+          <b>進度：</b>${con.progress != null ? con.progress + "%" : "未設定"}
+        </div>
+      </div>
+      <div class="section">
+        <h3>驗收中</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>水電驗收：</b>${acc.water_electric_done ? "✅ 已完成（" + (acc.water_electric_at || "") + "）" : "⏳ 未完成"}<br>
+          <b>油漆驗收：</b>${acc.paint_done ? "✅ 已完成（" + (acc.paint_at || "") + "）" : "⏳ 未完成"}<br>
+          <b>完工驗收：</b>${acc.final_done ? "✅ 已完成（" + (acc.final_at || "") + "）" : "⏳ 未完成"}<br>
+          <b>NG 筆數：</b>${acc.ng_count != null ? acc.ng_count : "0"}<br>
+          ${acc.note ? `<b>備註：</b>${acc.note}` : ""}
+        </div>
+        <div class="actions">
+          <button class="btn purple" onclick="openConstructionManagement()">施工管理（驗收項目）</button>
+          <button class="btn green">完成驗收並結案</button>
+          <button class="btn gray">查看所有圖片</button>
+        </div>
+      </div>`;
+  }
+
+  // 已結案（繼承發包＋施作＋驗收＋結案資訊）
+  if(c.status === "closed"){
+    const o = c.outsourcing || {};
+    const con = c.construction || {};
+    const acc = c.acceptance || {};
+    const cl = c.closed || {};
+    extra += `
+      <div class="section">
+        <h3>發包／施作／驗收（繼承）</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>承包方：</b>${o.contractor || "未設定"}<br>
+          <b>施作階段：</b>${con.current_phase || "未設定"}<br>
+          <b>完工驗收日：</b>${acc.final_at || "未設定"}
+        </div>
+      </div>
+      <div class="section">
+        <h3>已結案</h3>
+        <div class="card" style="margin-bottom:8px">
+          <b>結案日：</b>${cl.closed_at || "未設定"}<br>
+          <b>尾款入帳日：</b>${cl.final_payment_at || "未設定"}<br>
+          <b>保固起算日：</b>${cl.warranty_start || "未設定"}<br>
+          <b>客戶滿意度：</b>${cl.satisfaction || "未填"}<br>
+          ${cl.note ? `<b>備註：</b>${cl.note}` : ""}
+        </div>
+        <div class="actions">
+          <button class="btn gray">查看合約</button>
+          <button class="btn gray">查看所有圖片</button>
+        </div>
+      </div>`;
+  }
+
+  detail.innerHTML=`
+    <h3>客戶基本資料（客服填寫不可編輯）</h3>
+    <input disabled value="姓名：${c.customer.name}">
+    <input disabled value="電話：${c.customer.phone}">
+    <input disabled value="LINE：${c.customer.line}">
+    <input disabled value="地區：${c.customer.region}">
+    <input disabled value="地址：${c.customer.address}">
+    <input disabled value="屋況：${c.customer.house}">
+    <input disabled value="預算：${c.customer.budget}">
+    <textarea disabled rows="2">客服備註：${c.customer.note}</textarea>
+    <textarea disabled>客服派發日（預設丈量日+14D）：${c.customer.assigned_designer_at}</textarea>
+    ${extra}
+  `;
+}
+
+let selectedTemplate = null;
+let currentCaseId = null;
+
+function openContractTemplate(caseId){
+  currentCaseId = caseId;
+  const currentCase = cases.find(c => c.id === caseId);
+  
+  // 如果有已選擇的模板，預設選中
+  selectedTemplate = currentCase?.contract?.template || null;
+  
+  document.getElementById('contractTemplateModal')
+    .classList.add('active');
+  
+  // 使用 setTimeout 確保 modal 已經顯示後再標記 active
+  setTimeout(() => {
+    document
+      .querySelectorAll('#contractTemplateModal .item')
+      .forEach(i => i.classList.remove('active'));
+    
+    // 如果有已選擇的模板，標記為active
+    if(selectedTemplate){
+      const templateItem = document.querySelector(`#contractTemplateModal .item[data-template="${selectedTemplate}"]`);
+      if(templateItem) templateItem.classList.add('active');
+    }
+  }, 10);
+}
+
+function getTemplateName(code){
+  const templates = {
+    'A': '模板 A｜老屋翻新',
+    'B': '模板 B｜新成屋',
+    'C': '模板 C｜局部裝修'
+  };
+  return templates[code] || code;
+}
+
+function closeContractTemplate(){
+  document.getElementById('contractTemplateModal')
+    .classList.remove('active');
+}
+
+function selectTemplate(el, code){
+  document
+    .querySelectorAll('#contractTemplateModal .item')
+    .forEach(i => i.classList.remove('active'));
+
+  el.classList.add('active');
+  selectedTemplate = code;
+}
+
+function saveContractTemplate(){
+  if(!selectedTemplate){
+    alert('請先選擇一個合約模板');
+    return;
+  }
+  
+  if(!currentCaseId){
+    alert('錯誤：找不到案件ID');
+    return;
+  }
+  
+  // 保存模板到case數據中
+  const currentCase = cases.find(c => c.id === currentCaseId);
+  if(currentCase){
+    if(!currentCase.contract) currentCase.contract = {};
+    currentCase.contract.template = selectedTemplate;
+    
+    // 重新渲染詳情頁面以顯示更新的模板
+    renderDetail(currentCase);
+    closeContractTemplate();
+  }
+}
+
+function previewContractTemplate(caseId){
+  const currentCase = cases.find(c => c.id === caseId);
+  if(!currentCase || !currentCase.contract?.template){
+    alert('此案件尚未選擇合約模板');
+    return;
+  }
+  
+  // 之後這裡可以接 PDF / API / 新頁
+  alert(`預覽合約模板：${getTemplateName(currentCase.contract.template)}`);
+}
+
+/* ===== 施工管理相關 ===== */
+// 從施工施作分類與驗收管理.html獲取的數據結構
+const CONSTRUCTION_DATA = {
+  "拆除工程": {
+    sub: [
+      {active:true, name:"全室高樓拆除", unit:"尺", price:560, note:"依數量多寡價格另計"},
+      {active:true, name:"室內保護", unit:"坪", price:1040, note:"鋪2層保護層：防碰撞(舒服多)及2.2mm夾板(非陰製邊板)"},
+      {active:true, name:"公共空間保護", unit:"坪", price:1040, note:"以一分夾板單層保護，依營委會規定按實際施工坪數計算"},
+      {active:true, name:"大門保護", unit:"式", price:4820, note:"門框木心板 門片PVC"},
+      {active:true, name:"電梯木作保護", unit:"式", price:8260, note:"以一分夾板單層保護，營委會另有規定者另計"},
+      {active:true, name:"組工搬運/車", unit:"車", price:6880, note:""},
+      {active:true, name:"全室拆除廢棄物清運", unit:"車", price:17880, note:""},
+      {active:true, name:"保護板拆除及清運", unit:"式", price:4820, note:"所有工班完成後保護板移除，不包含除膠及細清"},
+      {active:true, name:"密簾拆除", unit:"組", price:270, note:""},
+      {active:true, name:"停車椅保護", unit:"式", price:2000, note:""},
+      {active:true, name:"門片窗框保護", unit:"樓", price:2000, note:"門片拆除、門片包層"}
+    ],
+    check: [
+      {active:true, item:"鄰居公告", standard:"公告貼紙有張貼於公告欄", note:"施工前", evidence:"照片"},
+      {active:true, item:"施工前斷水斷電", standard:"確認電源、水源完全關閉，並張貼警示標示", note:"施工前", evidence:"照片"},
+      {active:true, item:"門窗與地坪保護", standard:"保護材完整覆蓋，無裸露區域", note:"施工中", evidence:"照片"},
+      {active:true, item:"結構體未破壞", standard:"拆除後結構牆、梁柱無破損", note:"施工中", evidence:"照片"},
+      {active:true, item:"廢棄物清運完成", standard:"現場無殘留廢料，公共區域清潔", note:"完工", evidence:"照片"}
+    ]
+  },
+  "水電工程": {
+    sub: [
+      {active:true, name:"插座出線口", unit:"處", price:1110, note:"含材料"},
+      {active:true, name:"安裝開關 / 插座面板", unit:"個", price:560, note:""},
+      {active:true, name:"跳燈接孔", unit:"個", price:260, note:""},
+      {active:true, name:"跳燈安裝", unit:"個", price:280, note:""}
+    ],
+    check: [
+      {active:true, item:"配線標示完成", standard:"所有回路標示清楚", note:"施工中", evidence:"照片"},
+      {active:true, item:"通電測試", standard:"插座、開關測試正常", note:"完工", evidence:"影片"}
+    ]
+  },
+  "油漆工程": {
+    sub: [
+      {active:true, name:"油漆銘色", unit:"坪", price:2760, note:""},
+      {active:true, name:"新成屋牆面刷漆", unit:"坪", price:1180, note:""},
+      {active:true, name:"新成屋原始天花板刷漆", unit:"坪", price:1590, note:""}
+    ],
+    check: [
+      {active:true, item:"批土平整", standard:"無明顯刮痕、凹洞", note:"施工中", evidence:"照片"},
+      {active:true, item:"顏色一致", standard:"同一牆面無色差", note:"完工", evidence:"照片"}
+    ]
+  },
+  "玻璃工程": {
+    sub: [
+      {active:true, name:"5mm廚房強化玻璃烤漆玻璃", unit:"才", price:340, note:""}
+    ],
+    check: []
+  },
+  "清潔工程": {
+    sub: [
+      {active:true, name:"細清", unit:"坪", price:910, note:""}
+    ],
+    check: []
+  },
+  "系統櫃工程": {
+    sub: [
+      {active:true, name:"玄關高櫃", unit:"尺", price:7530, note:""},
+      {active:true, name:"機能區-吊櫃", unit:"尺", price:3870, note:""},
+      {active:true, name:"機能區-矮櫃", unit:"尺", price:4540, note:""},
+      {active:true, name:"客廳-雷櫃", unit:"尺", price:7530, note:""},
+      {active:true, name:"主臥-室開門衣櫃(上、下吊衣桿)", unit:"尺", price:6910, note:"對開門、上、下吊衣桿、固隔2片(單門-半Z把)"},
+      {active:true, name:"主臥-雷桌、化粧台", unit:"尺", price:3510, note:"含抽屜"},
+      {active:true, name:"主臥-床額板+燈", unit:"尺", price:4540, note:"18床額板+18板角料(上線LED鏡燈條)"},
+      {active:true, name:"主臥-收納矮櫃", unit:"尺", price:4540, note:""},
+      {active:true, name:"次臥(A)-開放式衣櫃(上、下吊衣桿)", unit:"尺", price:4030, note:"上、下吊衣桿、固隔2片"},
+      {active:true, name:"次臥(A)-雷桌、化粧台", unit:"尺", price:3510, note:"含抽屜"},
+      {active:true, name:"次臥(A)-床額板+燈", unit:"尺", price:4540, note:"18床額板+18板角料(上線LED鏡燈條)"},
+      {active:true, name:"次臥(A)-臥榻", unit:"尺", price:8000, note:"含拉抽*3、上鍥門(含緩衝橫桿)"},
+      {active:true, name:"次臥(A)-吊櫃", unit:"尺", price:3870, note:""},
+      {active:true, name:"廚房-矮櫃", unit:"尺", price:4540, note:""},
+      {active:true, name:"廚房-人造石樓面", unit:"公分", price:110, note:""}
+    ],
+    check: [
+      {active:true, item:"櫃體安裝穩固", standard:"無異音、無晃動 OK\n有異音、有晃動 NG", note:"完工", evidence:"影片"},
+      {active:true, item:"外觀與品質", standard:"有清潔、無殘膠 OK\n無清潔、有殘膠 NG", note:"完工", evidence:"照片"}
+    ]
+  },
+  "其他工程": {
+    sub: [
+      {active:true, name:"9CM崁燈(單色)", unit:"組", price:240, note:""},
+      {active:true, name:"軌道燈12W", unit:"組", price:340, note:""},
+      {active:true, name:"客廳-窗簾", unit:"才", price:470, note:""},
+      {active:true, name:"主臥-窗簾", unit:"才", price:380, note:""},
+      {active:true, name:"次臥-窗簾", unit:"才", price:380, note:""}
+    ],
+    check: []
+  }
+};
+
+let constructionMode = "quote";
+let selectedItems = {}; // {category: {itemIndex: {qty, price, note, unit}}}
+let quoteDates = {
+  startDate: "",
+  endDate: ""
+};
+let ganttItems = []; // 甘特圖項目數據
+
+// 單位選項
+const UNIT_OPTIONS = ["坪", "式", "尺", "公尺", "公分", "車", "組", "樘", "個", "才"];
+
+function openConstructionManagement(){
+  constructionMode = "quote";
+  // 不重置 selectedItems，保留已選擇的項目以便甘特圖使用
+  document.getElementById("constructionModal").classList.add("active");
+  renderConstructionTabs();
+  renderQuoteTab();
+}
+
+function closeConstructionManagement(){
+  document.getElementById("constructionModal").classList.remove("active");
+}
+
+function switchConstructionTab(mode){
+  constructionMode = mode;
+  document.querySelectorAll(".construction-tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".construction-content").forEach(c=>c.classList.remove("active"));
+  
+  event.target.classList.add("active");
+  if(mode === "quote"){
+    document.getElementById("quoteContent").classList.add("active");
+    renderQuoteTab();
+  }else if(mode === "gantt"){
+    document.getElementById("ganttContent").classList.add("active");
+    renderGanttTab();
+  }else{
+    document.getElementById("checkContent").classList.add("active");
+    renderCheckTab();
+  }
+}
+
+function renderConstructionTabs(){
+  const tabs = document.getElementById("constructionTabs");
+  tabs.innerHTML = `
+    <div class="construction-tab ${constructionMode === 'quote' ? 'active' : ''}" onclick="switchConstructionTab('quote')">報價單</div>
+    <div class="construction-tab ${constructionMode === 'gantt' ? 'active' : ''}" onclick="switchConstructionTab('gantt')">甘特圖管理</div>
+    <div class="construction-tab ${constructionMode === 'check' ? 'active' : ''}" onclick="switchConstructionTab('check')">驗收項目</div>
+  `;
+}
+
+function renderQuoteTab(){
+  const content = document.getElementById("quoteContent");
+  const actions = document.getElementById("constructionActions");
+  
+  let html = `
+    <div style="margin-bottom:20px;padding:16px;background:rgba(106,163,255,.1);border-radius:8px;border:1px solid rgba(106,163,255,.2)">
+      <h5 style="margin:0 0 8px;font-size:13px;color:#a7b0d6">預估施工日期</h5>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label style="display:block;font-size:12px;color:#a7b0d6;margin-bottom:4px">起始日</label>
+          <input type="date" id="quoteStartDate" value="${quoteDates.startDate}" onchange="quoteDates.startDate = this.value" style="width:100%">
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label style="display:block;font-size:12px;color:#a7b0d6;margin-bottom:4px">結束日</label>
+          <input type="date" id="quoteEndDate" value="${quoteDates.endDate}" onchange="quoteDates.endDate = this.value" style="width:100%">
+        </div>
+      </div>
+    </div>
+    
+    <table class="quote-table">
+      <thead>
+        <tr>
+          <th style="width:5%">勾選</th>
+          <th style="width:5%">編號</th>
+          <th style="width:20%">內容</th>
+          <th style="width:10%">單位</th>
+          <th style="width:12%">數量</th>
+          <th style="width:12%">單價</th>
+          <th style="width:12%">小計</th>
+          <th>備註</th>
+        </tr>
+      </thead>
+      <tbody id="quoteTableBody">
+  `;
+  
+  Object.keys(CONSTRUCTION_DATA).forEach((category, catIdx) => {
+    const categoryData = CONSTRUCTION_DATA[category];
+    html += `<tr><td colspan="8" style="background:rgba(106,163,255,.15);font-weight:bold;padding:8px">${getCategoryNumber(catIdx)} ${category}</td></tr>`;
+    
+    categoryData.sub.forEach((item, itemIdx) => {
+      const key = `${catIdx}-${itemIdx}`;
+      const selected = selectedItems[category] && selectedItems[category][itemIdx];
+      const qty = selected ? selected.qty : "";
+      const price = selected ? selected.price : item.price;
+      const note = selected ? selected.note : item.note;
+      const unit = selected ? (selected.unit || item.unit) : item.unit;
+      const subtotal = selected && qty && price ? (parseFloat(qty) * parseFloat(price)) : 0;
+      
+      // 生成單位下拉選單
+      const unitSelectOptions = UNIT_OPTIONS.map(u => 
+        `<option value="${u}" ${u === unit ? "selected" : ""}>${u}</option>`
+      ).join("");
+      
+      html += `
+        <tr>
+          <td><input type="checkbox" ${selected ? "checked" : ""} onchange="toggleQuoteItem('${category}', ${catIdx}, ${itemIdx}, this.checked)"></td>
+          <td>${itemIdx + 1}</td>
+          <td>${item.name}</td>
+          <td>
+            <select ${!selected ? "disabled" : ""} onchange="updateQuoteItem('${category}', ${catIdx}, ${itemIdx}, 'unit', this.value)" style="width:100%;padding:4px 6px;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(0,0,0,.35);color:#e8ecff;font-size:13px">
+              ${unitSelectOptions}
+            </select>
+          </td>
+          <td><input type="number" value="${qty}" ${!selected ? "disabled" : ""} onchange="updateQuoteItem('${category}', ${catIdx}, ${itemIdx}, 'qty', this.value)" style="width:80px"></td>
+          <td><input type="number" value="${price}" ${!selected ? "disabled" : ""} onchange="updateQuoteItem('${category}', ${catIdx}, ${itemIdx}, 'price', this.value)" style="width:100px"></td>
+          <td style="text-align:right">${subtotal > 0 ? formatCurrency(subtotal) : ""}</td>
+          <td><input type="text" value="${note}" ${!selected ? "disabled" : ""} onchange="updateQuoteItem('${category}', ${catIdx}, ${itemIdx}, 'note', this.value)" style="width:100%"></td>
+        </tr>
+      `;
+    });
+    
+    // 計算該分類小計
+    const categoryTotal = calculateCategoryTotal(category, catIdx);
+    if(categoryTotal > 0){
+      html += `<tr><td colspan="6" style="text-align:right;font-weight:bold">小計</td><td style="text-align:right;font-weight:bold">${formatCurrency(categoryTotal)}</td><td></td></tr>`;
+    }
+  });
+  
+  // 總計
+  const grandTotal = calculateGrandTotal();
+  html += `
+      </tbody>
+    </table>
+    <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:bold">
+      總計：${formatCurrency(grandTotal)}
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  
+  // 渲染按鈕到固定位置
+  actions.innerHTML = `
+    <button class="btn purple" onclick="switchConstructionTab('gantt')">甘特圖管理</button>
+    <button class="btn green" onclick="saveQuote()">儲存</button>
+    <button class="btn gray" onclick="closeConstructionManagement()">關閉</button>
+  `;
+}
+
+function saveQuote(){
+  // 儲存報價單數據
+  alert('報價單已儲存！');
+  // 這裡可以添加實際的儲存邏輯
+}
+
+function getCategoryNumber(idx){
+  const numbers = ["壹", "貳", "參", "肆", "伍", "陸", "柒", "捌", "玖", "拾"];
+  return numbers[idx] || (idx + 1);
+}
+
+function toggleQuoteItem(category, catIdx, itemIdx, checked){
+  if(!selectedItems[category]) selectedItems[category] = {};
+  
+  if(checked){
+    const item = CONSTRUCTION_DATA[category].sub[itemIdx];
+    selectedItems[category][itemIdx] = {
+      qty: "",
+      price: item.price,
+      note: item.note,
+      unit: item.unit // 預設使用資料中的單位
+    };
+  }else{
+    delete selectedItems[category][itemIdx];
+  }
+  
+  renderQuoteTab();
+}
+
+function updateQuoteItem(category, catIdx, itemIdx, field, value){
+  if(selectedItems[category] && selectedItems[category][itemIdx]){
+    selectedItems[category][itemIdx][field] = value;
+    renderQuoteTab();
+  }
+}
+
+function calculateCategoryTotal(category, catIdx){
+  if(!selectedItems[category]) return 0;
+  let total = 0;
+  Object.keys(selectedItems[category]).forEach(itemIdx => {
+    const item = selectedItems[category][itemIdx];
+    if(item.qty && item.price){
+      total += parseFloat(item.qty) * parseFloat(item.price);
+    }
+  });
+  return total;
+}
+
+function calculateGrandTotal(){
+  let total = 0;
+  Object.keys(CONSTRUCTION_DATA).forEach((category, catIdx) => {
+    total += calculateCategoryTotal(category, catIdx);
+  });
+  return total;
+}
+
+function formatCurrency(amount){
+  return "$ " + amount.toLocaleString('zh-TW');
+}
+
+function renderGanttTab(){
+  const content = document.getElementById("ganttContent");
+  const actions = document.getElementById("constructionActions");
+  
+  // 根據報價單的選中項目生成甘特圖項目
+  ganttItems = [];
+  let itemIndex = 1;
+  
+  Object.keys(CONSTRUCTION_DATA).forEach((category, catIdx) => {
+    const categoryData = CONSTRUCTION_DATA[category];
+    const selected = selectedItems[category];
+    
+    if(selected && Object.keys(selected).length > 0){
+      Object.keys(selected).forEach(itemIdx => {
+        const item = categoryData.sub[parseInt(itemIdx)];
+        const selectedItem = selected[itemIdx];
+        
+        if(selectedItem && selectedItem.qty){
+          ganttItems.push({
+            id: itemIndex++,
+            category: category,
+            name: item.name,
+            qty: selectedItem.qty,
+            unit: selectedItem.unit || item.unit, // 使用選擇的單位，如果沒有則使用預設單位
+            startDate: "",
+            endDate: "",
+            duration: 1 // 預設天數
+          });
+        }
+      });
+    }
+  });
+  
+  if(ganttItems.length === 0){
+    content.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#a7b0d6">
+        <p>請先在「報價單」中選擇項目並填寫數量</p>
+        <button class="btn" onclick="switchConstructionTab('quote')" style="margin-top:16px">前往報價單</button>
+      </div>
+    `;
+    actions.innerHTML = `
+      <button class="btn gray" onclick="closeConstructionManagement()">關閉</button>
+    `;
+    return;
+  }
+  
+  let html = `
+    <div style="margin-bottom:16px;color:#a7b0d6;font-size:13px">
+      <p style="margin:0 0 8px">預估施工期間：${quoteDates.startDate || '未設定'} 至 ${quoteDates.endDate || '未設定'}</p>
+      <p style="margin:0;font-size:12px">提示：可在報價單中設定預估施工日期</p>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="quote-table" style="min-width:800px">
+        <thead>
+          <tr>
+            <th style="width:5%">編號</th>
+            <th style="width:25%">工程項目</th>
+            <th style="width:15%">分類</th>
+            <th style="width:10%">數量</th>
+            <th style="width:15%">開始日期</th>
+            <th style="width:15%">結束日期</th>
+            <th style="width:15%">工期(天)</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  ganttItems.forEach((item, idx) => {
+    html += `
+      <tr>
+        <td>${item.id}</td>
+        <td>${item.name}</td>
+        <td>${item.category}</td>
+        <td>${item.qty} ${item.unit}</td>
+        <td><input type="date" id="ganttStartDate_${idx}" value="${item.startDate || ''}" onchange="handleGanttDateChange(${idx}, 'startDate', this.value)" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(0,0,0,.35);color:#e8ecff;font-size:13px;cursor:pointer"></td>
+        <td><input type="date" id="ganttEndDate_${idx}" value="${item.endDate || ''}" onchange="handleGanttDateChange(${idx}, 'endDate', this.value)" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(0,0,0,.35);color:#e8ecff;font-size:13px;cursor:pointer"></td>
+        <td><input type="number" value="${item.duration}" min="1" onchange="updateGanttItem(${idx}, 'duration', this.value)" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:rgba(0,0,0,.35);color:#e8ecff;font-size:13px"></td>
+      </tr>
+    `;
+  });
+  
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:20px;padding:16px;background:rgba(61,220,151,.1);border-radius:8px;border:1px solid rgba(61,220,151,.2)">
+      <h5 style="margin:0 0 8px;font-size:13px;color:#a7b0d6">甘特圖</h5>
+      <div id="ganttChart" style="position:relative;min-height:${ganttItems.length * 50}px;margin-top:12px"></div>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  
+  renderGanttChart();
+  
+  actions.innerHTML = `
+    <button class="btn green" onclick="saveGantt()">儲存甘特圖</button>
+    <button class="btn gray" onclick="closeConstructionManagement()">關閉</button>
+  `;
+}
+
+function handleGanttDateChange(idx, field, value){
+  setTimeout(() => {
+    updateGanttItem(idx, field, value);
+  }, 100);
+}
+
+function updateGanttItem(idx, field, value){
+  if(!ganttItems[idx]) return;
+  
+  ganttItems[idx][field] = value;
+  
+  if(field === 'startDate' || field === 'duration'){
+    const item = ganttItems[idx];
+    if(item.startDate && item.duration){
+      const start = new Date(item.startDate);
+      start.setDate(start.getDate() + parseInt(item.duration) - 1);
+      item.endDate = start.toISOString().slice(0, 10);
+      const endDateInput = document.getElementById(`ganttEndDate_${idx}`);
+      if(endDateInput) endDateInput.value = item.endDate;
+    }
+    renderGanttChart();
+  }
+  // 如果更新了結束日期，自動計算工期
+  else if(field === 'endDate'){
+    const item = ganttItems[idx];
+    if(item.startDate && item.endDate){
+      const start = new Date(item.startDate);
+      const end = new Date(item.endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      item.duration = diffDays;
+      const row = document.getElementById(`ganttStartDate_${idx}`)?.closest('tr');
+      if(row){
+        const durationInput = row.querySelector('input[type="number"]');
+        if(durationInput) durationInput.value = item.duration;
+      }
+    }
+    renderGanttChart();
+  }
+  // 如果更新了工期
+  else if(field === 'duration'){
+    const item = ganttItems[idx];
+    if(item.startDate && item.duration){
+      const start = new Date(item.startDate);
+      start.setDate(start.getDate() + parseInt(item.duration) - 1);
+      item.endDate = start.toISOString().slice(0, 10);
+      // 更新結束日期輸入框的值
+      const endDateInput = document.getElementById(`ganttEndDate_${idx}`);
+      if(endDateInput) endDateInput.value = item.endDate;
+    }
+    // 更新視覺化
+    renderGanttChart();
+  }
+}
+
+function renderGanttChart(){
+  const chartContainer = document.getElementById("ganttChart");
+  if(!chartContainer) return;
+  
+  if(ganttItems.length === 0){
+    chartContainer.innerHTML = '<p style="color:#a7b0d6;text-align:center;padding:20px">請先設定開始日期</p>';
+    return;
+  }
+  
+  // 找出所有日期範圍
+  const allDates = [];
+  ganttItems.forEach(item => {
+    if(item.startDate) allDates.push(new Date(item.startDate));
+    if(item.endDate) allDates.push(new Date(item.endDate));
+  });
+  
+  if(allDates.length === 0){
+    chartContainer.innerHTML = '<p style="color:#a7b0d6;text-align:center;padding:20px">請先設定開始日期</p>';
+    return;
+  }
+  
+  const minDate = new Date(Math.min(...allDates));
+  const maxDate = new Date(Math.max(...allDates));
+  
+  // 擴展日期範圍以便顯示
+  minDate.setDate(minDate.getDate() - 2);
+  maxDate.setDate(maxDate.getDate() + 2);
+  
+  const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+  const dayWidth = Math.max(20, Math.min(40, (chartContainer.offsetWidth || 800) / totalDays));
+  
+  let html = `
+    <div style="display:flex;gap:8px;margin-bottom:8px;font-size:11px;color:#a7b0d6">
+      <div style="width:200px">項目</div>
+      <div style="flex:1;position:relative">
+        <div style="display:flex;gap:2px;overflow-x:auto">
+  `;
+  
+  // 生成日期標籤
+  for(let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)){
+    const dayOfWeek = ['日','一','二','三','四','五','六'][d.getDay()];
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    html += `
+      <div style="min-width:${dayWidth}px;text-align:center;padding:2px;border-right:1px solid rgba(255,255,255,.1);${isWeekend ? 'background:rgba(255,107,107,.1)' : ''}">
+        <div>${d.getDate()}</div>
+        <div style="font-size:10px">${dayOfWeek}</div>
+      </div>
+    `;
+  }
+  
+  html += `
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 生成甘特圖條
+  ganttItems.forEach((item, idx) => {
+    if(!item.startDate){
+      html += `
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;height:40px">
+          <div style="width:200px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.name}">${item.name}</div>
+          <div style="flex:1;color:#a7b0d6;font-size:11px;text-align:center">未設定日期</div>
+        </div>
+      `;
+      return;
+    }
+    
+    const start = new Date(item.startDate);
+    const end = item.endDate ? new Date(item.endDate) : new Date(start.getTime() + (item.duration - 1) * 24 * 60 * 60 * 1000);
+    
+    const startOffset = Math.ceil((start - minDate) / (1000 * 60 * 60 * 24));
+    const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    html += `
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;height:40px">
+        <div style="width:200px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.name}">${item.name}</div>
+        <div style="flex:1;position:relative;height:30px;background:rgba(255,255,255,.05);border-radius:4px">
+          <div style="position:absolute;left:${startOffset * dayWidth}px;width:${duration * dayWidth}px;height:100%;background:rgba(106,163,255,.6);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#e8ecff;border:1px solid rgba(255,255,255,.2)" title="${item.startDate} ~ ${end.toISOString().slice(0,10)}">
+            ${item.startDate} ~ ${end.toISOString().slice(0,10)}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  chartContainer.innerHTML = html;
+}
+
+function saveGantt(){
+  // 儲存甘特圖數據
+  console.log('甘特圖數據:', ganttItems);
+  alert('甘特圖已儲存！');
+  // 這裡可以添加實際的儲存邏輯
+}
+
+function renderCheckTab(){
+  const content = document.getElementById("checkContent");
+  const actions = document.getElementById("constructionActions");
+  
+  let html = `
+    <div style="margin-bottom:12px;color:#a7b0d6;font-size:13px">
+      工站期間：<input type="date" id="workStartDate" style="width:150px;display:inline-block;margin:0 8px"> 至 <input type="date" id="workEndDate" style="width:150px;display:inline-block;margin:0 8px">
+    </div>
+    <table class="check-table">
+      <thead>
+        <tr>
+          <th style="width:15%">工站</th>
+          <th style="width:8%">單元</th>
+          <th style="width:8%">序號</th>
+          <th style="width:20%">檢驗項目</th>
+          <th style="width:30%">檢驗標準</th>
+          <th style="width:10%">佐證類型</th>
+          <th style="width:9%">判定</th>
+        </tr>
+      </thead>
+      <tbody id="checkTableBody">
+  `;
+  
+  Object.keys(CONSTRUCTION_DATA).forEach((category, catIdx) => {
+    const categoryData = CONSTRUCTION_DATA[category];
+    if(categoryData.check && categoryData.check.length > 0){
+      categoryData.check.forEach((checkItem, checkIdx) => {
+        if(checkItem.active){
+          html += `
+            <tr>
+              <td>${category}</td>
+              <td>${checkIdx + 1}</td>
+              <td>${checkIdx + 1}</td>
+              <td>${checkItem.item}</td>
+              <td>${checkItem.standard}</td>
+              <td>${checkItem.evidence || "照片"}</td>
+              <td>
+                <select style="width:100%;padding:4px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e8ecff">
+                  <option value="">請選擇</option>
+                  <option value="OK">OK</option>
+                  <option value="NG">NG</option>
+                </select>
+              </td>
+            </tr>
+          `;
+        }
+      });
+    }
+  });
+  
+  html += `
+      </tbody>
+    </table>
+    <div style="margin-top:16px">
+      <div class="label">備註：</div>
+      <textarea rows="3" placeholder="請輸入備註" style="width:100%"></textarea>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  
+  // 渲染按鈕
+  actions.innerHTML = `
+    <button class="btn green" onclick="saveCheck()">儲存</button>
+    <button class="btn gray" onclick="closeConstructionManagement()">關閉</button>
+  `;
+}
+
+function saveCheck(){
+  // 儲存驗收項目數據
+  alert('驗收項目已儲存！');
+  // 這裡可以添加實際的儲存邏輯
+}
+
+function generatePDFContent(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // 客戶資訊
+  const customerName = document.getElementById("customerName")?.value || "客戶名稱";
+  const projectName = document.getElementById("projectName")?.value || "工程名稱";
+  const projectAddress = document.getElementById("projectAddress")?.value || "施工地點";
+  const today = new Date().toLocaleDateString('zh-TW');
+  
+  // 標題
+  doc.setFontSize(18);
+  doc.text("分類報價單", 105, 20, {align: 'center'});
+  
+  // 客戶資訊表格
+  doc.setFontSize(10);
+  let y = 35;
+  doc.text("客戶名稱", 20, y);
+  doc.text(customerName, 50, y);
+  doc.text("聯絡人", 120, y);
+  doc.text("0", 150, y);
+  doc.text("日期", 170, y);
+  doc.text(today, 180, y);
+  
+  y += 8;
+  doc.text("工程名稱", 20, y);
+  doc.text(projectName, 50, y);
+  doc.text("電話", 120, y);
+  doc.text("0", 150, y);
+  doc.text("傳真", 170, y);
+  
+  y += 8;
+  doc.text("施工地點", 20, y);
+  doc.text(projectAddress, 50, y);
+  doc.text("案號", 120, y);
+  doc.text("0", 150, y);
+  doc.text("單號", 170, y);
+  
+  y += 15;
+  
+  // 表格標題
+  const tableHeaders = ["項目", "編號", "區域", "內容", "數量", "單位", "單價", "小計", "備註"];
+  const colPositions = [20, 45, 57, 72, 122, 137, 152, 172, 192];
+  
+  doc.setFontSize(9);
+  tableHeaders.forEach((header, idx) => {
+    doc.text(header, colPositions[idx], y);
+  });
+  
+  y += 8;
+  doc.line(20, y-4, 190, y-4);
+  
+  // 項目內容
+  Object.keys(CONSTRUCTION_DATA).forEach((category, catIdx) => {
+    const categoryData = CONSTRUCTION_DATA[category];
+    const selected = selectedItems[category];
+    
+    if(selected && Object.keys(selected).length > 0){
+      // 分類標題
+      if(y > 270){
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(10);
+      doc.text(`${getCategoryNumber(catIdx)} ${category}`, 20, y);
+      y += 8;
+      
+      Object.keys(selected).forEach(itemIdx => {
+        const item = categoryData.sub[parseInt(itemIdx)];
+        const selectedItem = selected[itemIdx];
+        const qty = selectedItem.qty || "";
+        const price = selectedItem.price || item.price;
+        const subtotal = qty && price ? (parseFloat(qty) * parseFloat(price)) : 0;
+        
+        if(y > 270){
+          doc.addPage();
+          y = 20;
+          // 重新繪製表頭
+          doc.setFontSize(9);
+          tableHeaders.forEach((header, idx) => {
+            doc.text(header, colPositions[idx], y);
+          });
+          y += 8;
+          doc.line(20, y-4, 190, y-4);
+        }
+        
+        doc.setFontSize(8);
+        doc.text("", colPositions[0], y); // 項目
+        doc.text((parseInt(itemIdx) + 1).toString(), colPositions[1], y); // 編號
+        doc.text("", colPositions[2], y); // 區域
+        const contentLines = doc.splitTextToSize(item.name, 45);
+        doc.text(contentLines, colPositions[3], y); // 內容
+        doc.text(qty.toString(), colPositions[4], y); // 數量
+        doc.text(item.unit, colPositions[5], y); // 單位
+        doc.text(formatCurrency(price), colPositions[6], y); // 單價
+        doc.text(subtotal > 0 ? formatCurrency(subtotal) : "", colPositions[7], y); // 小計
+        const noteLines = doc.splitTextToSize(selectedItem.note || "", 15);
+        doc.text(noteLines, colPositions[8], y); // 備註
+        
+        y += Math.max(contentLines.length, noteLines.length) * 5;
+      });
+      
+      // 小計
+      const categoryTotal = calculateCategoryTotal(category, catIdx);
+      if(categoryTotal > 0){
+        if(y > 270){
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFontSize(9);
+        doc.text("小計", colPositions[6], y);
+        doc.text(formatCurrency(categoryTotal), colPositions[7], y);
+        y += 10;
+      }
+    }
+  });
+  
+  // 總計
+  const grandTotal = calculateGrandTotal();
+  if(grandTotal > 0){
+    if(y > 270){
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(12);
+    doc.text(`總計：${formatCurrency(grandTotal)}`, colPositions[6], y);
+  }
+  
+  // 儲存PDF
+  const fileName = `分類報價單_${customerName}_${today.replace(/\//g, '')}.pdf`;
+  doc.save(fileName);
+}
+
+
+render();
+
+
+</script>
+<!-- 合約模板選擇 Modal -->
+<div class="modal" id="contractTemplateModal">
+  <div class="modal-box" style="width:520px">
+    
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">選擇合約模板</h3>
+      <button class="btn gray" onclick="closeContractTemplate()">✕</button>
+    </div>
+
+    <!-- List -->
+    <div class="modal-scroll" style="max-height:320px">
+      <div class="item" data-template="A" onclick="selectTemplate(this,'A')">
+        <b>模板 A｜老屋翻新</b><br>
+        <span class="sub">簽約 10％, 選材 30%, 水電驗收 20%, 油漆驗收 40%, 完工 10%</span>
+      </div>
+
+      <div class="item" data-template="B" onclick="selectTemplate(this,'B')">
+        <b>模板 B｜新成屋</b><br>
+        <span class="sub"> 簽約 10％, 選材 40%, 油漆驗收 20%, 完工 10% </span>
+      </div>
+
+      <div class="item" data-template="C" onclick="selectTemplate(this,'C')">
+        <b>模板 C｜局部裝修</b><br>
+        <span class="sub">廚房 / 衛浴 / 局部工程</span>
+      </div>
+    </div>
+    <!-- Actions -->
+    <div class="actions" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn gray" onclick="closeContractTemplate()">取消</button>
+      <button class="btn green" onclick="saveContractTemplate()">確定</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal" id="calendarModal">
+  <div class="modal-box" style="width:900px">
+    
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">工務行事曆（LINE WORKS｜月檢視）</h3>
+      <button class="btn gray" onclick="closeCalendar()">關閉</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">
+      <div>
+        <button class="btn gray" onclick="changeMonth(-1)">←</button>
+        <span id="monthLabel" style="margin:0 12px;font-weight:500"></span>
+        <button class="btn gray" onclick="changeMonth(1)">→</button>
+      </div>
+
+      <div id="staffFilter"></div>
+    </div>
+
+    <!-- Calendar -->
+<!-- Calendar -->
+    <div class="modal-scroll">
+
+      <!-- 星期列（新增） -->
+      <div class="calendar-week">
+        <div>一</div>
+        <div>二</div>
+        <div>三</div>
+        <div>四</div>
+        <div>五</div>
+        <div>六</div>
+        <div>日</div>
+      </div>
+
+      <!-- 日期格 -->
+      <div id="calendarGrid" class="calendar-grid"></div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- 施工管理 Modal -->
+<div class="modal" id="constructionModal">
+  <div class="modal-box" style="width:1200px;max-width:95vw">
+    
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">施工管理</h3>
+      <button class="btn gray" onclick="closeConstructionManagement()">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div id="constructionTabs" class="construction-tabs"></div>
+
+    <!-- Content -->
+    <div class="modal-scroll" style="max-height:60vh">
+      <div id="quoteContent" class="construction-content active"></div>
+      <div id="ganttContent" class="construction-content"></div>
+      <div id="checkContent" class="construction-content"></div>
+    </div>
+
+    <!-- Action Buttons (固定在底部) -->
+    <div id="constructionActions" class="actions" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)"></div>
+
+  </div>
+</div>
+
+
+</body>
+</html>

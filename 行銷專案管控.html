@@ -1,0 +1,496 @@
+
+
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>行銷團隊｜專案管控（進階 Demo）</title>
+<style>
+body{
+ margin:0;
+ font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+ background:#0b1020;
+ color:#e8ecff;
+}
+.container{max-width:1200px;margin:auto;padding:24px;}
+h1{margin:0;font-size:20px;}
+.sub{font-size:13px;color:#a7b0d6;margin-bottom:12px;}
+
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px;}
+.card{
+ background:#111a33;
+ border:1px solid rgba(255,255,255,.1);
+ border-radius:14px;
+ padding:14px;
+}
+
+.header-row{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin-bottom:10px;
+}
+
+.btn{
+ padding:6px 12px;
+ border-radius:8px;
+ border:1px solid rgba(255,255,255,.2);
+ background:#6aa3ff;
+ color:#0b1020;
+ cursor:pointer;
+ font-size:13px;
+}
+
+.item{
+ padding:12px;
+ border:1px solid rgba(255,255,255,.1);
+ border-radius:12px;
+ margin-bottom:10px;
+ cursor:pointer;
+}
+.item.active{outline:2px solid #6aa3ff;background:rgba(106,163,255,.15);}
+
+.chip{
+ display:inline-block;
+ font-size:12px;
+ padding:4px 10px;
+ border-radius:999px;
+ border:1px solid rgba(255,255,255,.2);
+ margin-right:6px;
+ color:#a7b0d6;
+}
+
+.section{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;}
+.label{font-size:12px;color:#a7b0d6;margin-bottom:4px;}
+.value{font-size:14px;white-space:pre-wrap;}
+
+.table{
+ width:100%;
+ border-collapse:collapse;
+ margin-top:8px;
+ font-size:13px;
+}
+.table th,.table td{
+ border:1px solid rgba(255,255,255,.15);
+ padding:6px;
+ text-align:center;
+}
+.table th{color:#a7b0d6;}
+
+.modal{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.6);
+ display:none;
+ align-items:center;
+ justify-content:center;
+}
+.modal.active{display:flex;}
+.modal-box{
+ background:#111a33;
+ border-radius:12px;
+ padding:16px;
+ width:360px;
+}
+input,textarea{
+ width:100%;
+ margin-bottom:8px;
+ padding:8px;
+ border-radius:8px;
+ border:1px solid rgba(255,255,255,.2);
+ background:#0b1020;
+ color:#e8ecff;
+}
+textarea{resize:vertical;}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="header-row">
+    <h1>行銷團隊｜專案管控 流程 A.1 </h1>
+    <button class="btn" onclick="openModal()">＋ 新增專案</button>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="list"></div>
+    <div class="card" id="detail"><div class="sub">請選擇左側專案</div></div>
+  </div>
+</div>
+
+<!-- 新增專案 Dialog -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3>新增行銷專案</h3>
+
+    <input id="newName" placeholder="專案名稱">
+
+    <input id="newProduction" type="date" placeholder="製作日期">
+
+    <input id="newLocation" placeholder="企劃地點（拍攝／案場）">
+
+    <input id="newRole" placeholder="企劃角色（IP／人物設定）">
+
+    <textarea id="newNote" rows="3" placeholder="備註"></textarea>
+
+    <button class="btn" onclick="createProject()">建立（送審）</button>
+  </div>
+</div>
+
+
+<script>
+
+  let projects = [
+{
+  id: 1,
+  name: "工地開箱影片｜內湖 A 案",
+  status: "已通過",
+  production: "2025/10/12",
+  publish: "2025/10/20",
+
+  script: "施工前後完整對比，強調細節差異",
+  location: "台北市內湖區 XX 路 工地",
+  role: "工地主任＋監工",
+
+  note: "需注意交付前清潔細節",
+
+  form: {
+    url: "https://form.example.com/a1",
+    open: 320,
+    submit: 84,
+    contract: 12
+  },
+
+  flow: { fb: 18500, ig: 12400, tk: 9300 }
+},
+{
+  id: 2,
+  name: "IP 角色短影音｜信義工具箱",
+  status: "審核中",
+  production: "2025/11/01",
+  publish: "",
+
+  script: "IP 新手監工三大常見錯誤",
+  location: "台北市信義區 案場",
+  role: "IP 角色－阿包",
+
+  note: "IP 形象需再確認",
+
+  form: {
+    url: "https://form.example.com/a2",
+    open: 140,
+    submit: 36,
+    contract: 4
+  },
+
+  flow: { fb: 6200, ig: 4100, tk: 0 }
+},
+{
+  id: 3,
+  name: "完工紀錄影片｜士林 B 案",
+  status: "已通過",
+  production: "2025/09/18",
+  publish: "2025/09/28",
+
+  script: "完工全紀錄＋屋主回饋",
+  location: "台北市士林區 XX 路",
+  role: "工程師角色",
+
+  note: "可作為長期案例素材",
+
+  form: {
+    url: "https://form.example.com/a3",
+    open: 510,
+    submit: 132,
+    contract: 26
+  },
+
+  flow: { fb: 22000, ig: 15800, tk: 12100 }
+},
+{
+  id: 4,
+  name: "短影音系列｜工地 QA",
+  status: "審核中",
+  production: "2025/11/08",
+  publish: "",
+
+  script: "常見裝潢問題 QA 系列",
+  location: "台北市大安區 工地",
+  role: "工程顧問",
+
+  note: "每支 30 秒",
+
+  form: {
+    url: "https://form.example.com/a4",
+    open: 90,
+    submit: 18,
+    contract: 2
+  },
+
+  flow: { fb: 4800, ig: 3600, tk: 0 }
+},
+{
+  id: 5,
+  name: "品牌形象影片｜北投案",
+  status: "已通過",
+  production: "2025/10/05",
+  publish: "2025/10/15",
+
+  script: "品牌理念＋施工流程介紹",
+  location: "台北市北投區",
+  role: "旁白角色",
+
+  note: "品牌用語需固定版本",
+
+  form: {
+    url: "https://form.example.com/a5",
+    open: 260,
+    submit: 71,
+    contract: 11
+  },
+
+  flow: { fb: 14300, ig: 9800, tk: 7600 }
+},
+{
+  id: 6,
+  name: "案例分享影片｜松山案",
+  status: "已通過",
+  production: "2025/08/22",
+  publish: "2025/09/01",
+
+  script: "屋主故事導向案例分享",
+  location: "台北市松山區",
+  role: "屋主本人",
+
+  note: "已取得屋主授權",
+
+  form: {
+    url: "https://form.example.com/a6",
+    open: 180,
+    submit: 42,
+    contract: 6
+  },
+
+  flow: { fb: 8900, ig: 6400, tk: 5200 }
+},
+{
+  id: 7,
+  name: "施工流程介紹｜中山案",
+  status: "審核中",
+  production: "2025/11/12",
+  publish: "",
+
+  script: "完整施工流程動畫說明",
+  location: "台北市中山區",
+  role: "動畫角色",
+
+  note: "流程動畫待補",
+
+  form: {
+    url: "https://form.example.com/a7",
+    open: 60,
+    submit: 9,
+    contract: 1
+  },
+
+  flow: { fb: 3100, ig: 1900, tk: 0 }
+},
+{
+  id: 8,
+  name: "設計師專訪｜大安案",
+  status: "已通過",
+  production: "2025/09/30",
+  publish: "2025/10/08",
+
+  script: "設計師理念與案例分享",
+  location: "台北市大安區",
+  role: "設計師本人",
+
+  note: "可延伸成系列",
+
+  form: {
+    url: "https://form.example.com/a8",
+    open: 240,
+    submit: 58,
+    contract: 9
+  },
+
+  flow: { fb: 12600, ig: 8700, tk: 6900 }
+},
+{
+  id: 9,
+  name: "裝潢預算解析｜南港案",
+  status: "審核中",
+  production: "2025/11/18",
+  publish: "",
+
+  script: "裝潢預算配置與注意事項",
+  location: "台北市南港區",
+  role: "顧問角色",
+
+  note: "需避免價格誤導",
+
+  form: {
+    url: "https://form.example.com/a9",
+    open: 48,
+    submit: 7,
+    contract: 0
+  },
+
+  flow: { fb: 2700, ig: 1500, tk: 0 }
+},
+{
+  id: 10,
+  name: "完工前後對比｜板橋案",
+  status: "已通過",
+  production: "2025/08/10",
+  publish: "2025/08/18",
+
+  script: "完工前後差異強烈對比",
+  location: "新北市板橋區",
+  role: "施工團隊",
+
+  note: "成效最佳，可再投放",
+
+  form: {
+    url: "https://form.example.com/a10",
+    open: 620,
+    submit: 164,
+    contract: 34
+  },
+
+  flow: { fb: 26400, ig: 18300, tk: 14200 }
+}
+];
+
+
+
+let selected=null;
+const list=document.getElementById("list");
+const detail=document.getElementById("detail");
+
+function renderList(){
+ list.innerHTML="";
+ projects.forEach(p=>{
+  const d=document.createElement("div");
+  d.className="item"+(p.id===selected?" active":"");
+  d.innerHTML=`
+    <b>${p.name}</b><br>
+    <span class="chip">${p.status}</span>
+  `;
+  d.onclick=()=>{selected=p.id;renderList();renderDetail();};
+  list.appendChild(d);
+ });
+}
+
+function renderDetail(){
+ const p=projects.find(x=>x.id===selected);
+ if(!p)return;
+
+ const total=p.flow.fb+p.flow.ig+p.flow.tk;
+
+ detail.innerHTML=`
+  <h3>${p.name}</h3>
+
+  <div class="section">
+    <div class="label">製作日期</div>
+    <div class="value">${p.production||"-"}</div>
+  </div>
+
+<div class="section">
+  <div class="label">企劃地點</div>
+  <div class="value">${p.location}</div>
+</div>
+
+<div class="section">
+  <div class="label">企劃角色</div>
+  <div class="value">${p.role}</div>
+</div>
+  <div class="section">
+    <div class="label">審核</div>
+    <div class="value">${p.status}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">上片日期</div>
+    <div class="value">${p.publish||"-"}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">備註</div>
+    <div class="value">${p.note}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">平台流量（截至 2025/12/31）</div>
+    <table class="table">
+      <tr>
+        <th>FB</th><th>IG</th><th>TK</th><th>累計</th><th>總量流量</th>
+      </tr>
+      <tr>
+        <td>${p.flow.fb}</td>
+        <td>${p.flow.ig}</td>
+        <td>${p.flow.tk}</td>
+        <td>${total}</td>
+        <td>${total}</td>
+      </tr>
+    </table>
+  </div><div class="section">
+  <div class="label">企劃腳本</div>
+  <div class="value">${p.script}</div>
+</div>
+
+<div class="section">
+  <div class="label">填單與轉換成效</div>
+  <div class="value">
+    填單連結：
+    <a href="${p.form.url}" target="_blank">${p.form.url}</a>
+  </div>
+<table class="table">
+  <thead>
+    <tr>
+      <th>填單開啟</th>
+      <th>填單完成</th>
+      <th>合約簽署</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>${p.form.open}</b></td>
+      <td><b>${p.form.submit}</b></td>
+      <td><b>${p.form.contract}</b></td>
+    </tr>
+  </tbody>
+</table>
+
+</div>
+
+ `;
+}
+
+function openModal(){
+ document.getElementById("modal").classList.add("active");
+}
+
+function createProject(){
+ const name=document.getElementById("newName").value;
+ if(!name)return alert("請輸入專案名稱");
+
+ projects.push({
+  id:Date.now(),
+  name:name,
+  status:"審核中",
+  production:"",
+  publish:"",
+  note:document.getElementById("newNote").value,
+  flow:{fb:0,ig:0,tk:0}
+ });
+
+ document.getElementById("modal").classList.remove("active");
+ renderList();
+}
+
+renderList();
+</script>
+</body>
+</html>

@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>客服接單｜多管道＋無效案件（完整版）</title>
+
+<style>
+
+  .modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+
+.icon-btn{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.25);
+  color:#e8ecff;
+  cursor:pointer;
+  font-size:16px;
+  line-height:1;
+}
+.icon-btn:hover{
+  border-color:rgba(255,255,255,.35);
+  background:rgba(0,0,0,.35);
+}
+
+  .btn-sm{
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:12px;
+  line-height:1;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+  background:#0b1020;
+  color:#e8ecff;
+}
+.container{max-width:1200px;margin:auto;padding:24px;}
+h1{margin:0;font-size:20px;}
+.sub{font-size:13px;color:#a7b0d6;margin:8px 0 12px;}
+
+.tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.tab{
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  cursor:pointer;
+  font-size:13px;
+  color:#a7b0d6;
+}
+.tab.active{background:#6aa3ff;color:#0b1020;border-color:#6aa3ff;}
+
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px;}
+.card{
+  background:#111a33;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:14px;
+}
+
+.item{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+.item.active{outline:2px solid #6aa3ff;background:rgba(106,163,255,.15);}
+
+.tag{
+  display:inline-block;
+  font-size:12px;
+  padding:3px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  margin-right:6px;
+}
+.marketing{color:#6aa3ff;border-color:#6aa3ff;}
+.general{color:#ffcc66;border-color:#ffcc66;}
+.onsite{color:#3ddc97;border-color:#3ddc97;}
+.invalidTag{color:#ff6b6b;border-color:#ff6b6b;}
+
+.time{font-size:12px;color:#a7b0d6;margin-top:4px;}
+
+.section{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;}
+.label{font-size:12px;color:#a7b0d6;margin-bottom:4px;}
+
+input,select,textarea{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.3);
+  color:#e8ecff;
+}
+textarea{resize:vertical;}
+
+.actions{display:flex;gap:10px;margin-top:16px;}
+.btn{
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+}
+.contact{background:#3ddc97;color:#0b1020;}
+.assign{background:#6aa3ff;color:#0b1020;}
+.invalidBtn{background:#ff6b6b;color:#0b1020;}
+
+.modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal.active{display:flex;}
+.modal-box{
+  background:#111a33;
+  padding:20px;
+  border-radius:14px;
+  width:360px;
+}
+
+.btn-onsite{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  padding:6px 14px 6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:500;
+
+  color:#0b1020;
+  background:linear-gradient(135deg,#7fb2ff,#6aa3ff);
+  border:none;
+  cursor:pointer;
+
+  box-shadow:
+    0 4px 10px rgba(106,163,255,.25),
+    inset 0 1px 0 rgba(255,255,255,.4);
+
+  transition:all .2s ease;
+}
+
+.btn-onsite .icon{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:rgba(255,255,255,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:bold;
+}
+
+.btn-onsite:hover{
+  transform:translateY(-1px);
+  box-shadow:
+    0 6px 14px rgba(106,163,255,.35),
+    inset 0 1px 0 rgba(255,255,255,.5);
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+.table th,.table td{
+  padding:10px;
+  text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  font-size:13px;
+}
+.table th{
+  color:#a7b0d6;
+  font-weight:500;
+}
+.table td{
+  color:#e8ecff;
+}
+.table tbody tr:hover{
+  background:rgba(255,255,255,.05);
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div style="display:flex;justify-content:space-between;align-items:center;">
+  <h1>客服接單 流程 A.2.1 ~ A.3.2 </h1>
+<button class="btn-onsite" onclick="openOnsiteModal()">
+  <span class="icon">＋</span>
+  現場諮詢
+</button>
+</div>
+
+<!-- 來源 -->
+<div class="tabs">
+  <div class="tab active" onclick="setSource('all',this)">全部</div>
+  <div class="tab" onclick="setSource('marketing',this)">行銷企劃</div>
+  <div class="tab" onclick="setSource('general',this)">一般管道</div>
+  <div class="tab" onclick="setSource('onsite',this)">現場諮詢</div>
+</div>
+
+<!-- 狀態 -->
+<div class="tabs">
+  <div class="tab active" onclick="setWorkTab('all',this)">全部</div>
+  <div class="tab" onclick="setWorkTab('new',this)">待接單</div>
+  <div class="tab" onclick="setWorkTab('mine',this)">我已接</div>
+  <div class="tab" onclick="setWorkTab('invalid',this)">無效案件</div>
+</div>
+
+<div class="grid">
+  <div class="card" id="list"></div>
+  <div class="card" id="detail"><div class="sub">請選擇左側案件</div></div>
+</div>
+</div>
+
+<!-- 現場諮詢 Modal -->
+<div class="modal" id="onsiteModal">
+  <div class="modal-box">
+    <h3>新增現場諮詢</h3>
+    <input id="osName" placeholder="姓名">
+    <input id="osPhone" placeholder="手機">
+    <input id="osLine" placeholder="LINE">
+    <input id="osRegion" placeholder="區域">
+    <input id="osAddress" placeholder="地址">
+    <input id="osBudget" placeholder="預算">
+    <input id="osSize" placeholder="坪數">
+    <textarea id="osNote" rows="3" placeholder="備註"></textarea>
+    <div class="actions">
+      <button class="btn assign" onclick="createOnsite()">建立</button>
+      <button class="btn invalidBtn" onclick="closeOnsiteModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設為無效 Modal -->
+<div class="modal" id="invalidModal" onclick="if(event.target.id==='invalidModal')closeInvalidModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 style="margin:0">設為無效</h3>
+      <button class="icon-btn" onclick="closeInvalidModal()" aria-label="關閉">✕</button>
+    </div>
+    <div class="sub">請選擇無效原因</div>
+    <input type="hidden" id="invalidLeadId">
+    <div class="section">
+      <div class="label">無效原因</div>
+      <select id="invalidReasonSelect">
+        <option value="">請選擇無效原因</option>
+        <option value="自來客">自來客</option>
+        <option value="預算不足">預算不足</option>
+        <option value="重複填單">重複填單</option>
+        <option value="局部裝修">局部裝修</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn invalidBtn" onclick="submitInvalid()">確認</button>
+      <button class="btn assign" onclick="closeInvalidModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 常數 ===== */
+const currentUserId = 1;
+const INVALID_REASONS = ["自來客","預算不足","重複填單","局部裝修","其他"];
+
+/* ===== 狀態 ===== */
+let sourceFilter="all";
+let workTab="all";
+let selected=null;
+
+/* ===== 假資料 ===== */
+function minutesAgo(m){return Date.now()-m*60000;}
+const designers = [
+ {name:"外-呂育泰", total:7, contract:1},
+ {name:"外-林郁家", total:11, contract:0},
+ {name:"外-桂浚璐", total:12, contract:2},
+ {name:"名好", total:86, contract:9},
+ {name:"宏達", total:93, contract:24},
+ {name:"阿契", total:90, contract:18},
+ {name:"博文", total:53, contract:12},
+ {name:"聖傑", total:221, contract:33},
+ {name:"靜麒", total:69, contract:8}
+];
+
+const leads=[{
+  id:1,source:"marketing",branch:"北區",createdAt:minutesAgo(30),
+  name:"吳小姐",phone:"0912-345-678",line:"wu_line",region:"台北市",
+  fee:2000,role:"屋主",house:"舊屋",age:"20",
+  reserve:"下午",contact:"晚上",size:"32",progress:"初談",
+  budget:"100 萬",address:"台北市大安區 XX 路",note:"",
+  handledStatus:"new",handledUser:null,invalidReason:null
+},{
+  id:2,source:"general",branch:"桃園",createdAt:minutesAgo(60),
+  name:"王先生",phone:"0988-888-888",line:"wang888",region:"桃園市",
+  fee:0,role:"自來客",house:"舊屋",age:"40",
+  reserve:"下午",contact:"晚上",size:"18",progress:"未接",
+  budget:"未提供",address:"桃園市龜山區",note:"",
+  handledStatus:"invalid",handledUser:null,invalidReason:"自來客"
+},{
+  id:3,source:"onsite",branch:"台中",createdAt:minutesAgo(45),
+  name:"張小姐",phone:"0977-333-444",line:"chang_tc",region:"台中市",
+  fee:3000,role:"屋主",house:"舊屋",age:"25",
+  reserve:"下午",contact:"晚上",size:"40",progress:"已丈量",
+  budget:"150 萬",address:"台中市西屯區",note:"",
+  handledStatus:"claimed",handledUser:1,invalidReason:null
+}];
+
+/* ===== UI ===== */
+const list=document.getElementById("list");
+const detail=document.getElementById("detail");
+
+function tag(l){
+  return `<span class="tag ${l.source}">${
+    l.source==="marketing"?"行銷企劃":
+    l.source==="general"?"一般管道":"現場諮詢"
+  }</span>`;
+}
+
+function setSource(s,el){
+  sourceFilter=s;selected=null;
+  el.parentElement.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");render();
+}
+function setWorkTab(s,el){
+  workTab=s;selected=null;
+  el.parentElement.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");render();
+}
+
+function render(){
+  list.innerHTML="";
+  detail.innerHTML="<div class='sub'>請選擇左側案件</div>";
+
+  leads.filter(l=>{
+    if(sourceFilter!=="all"&&l.source!==sourceFilter)return false;
+    if(workTab==="new")return l.handledStatus==="new";
+    if(workTab==="mine")return l.handledUser===currentUserId;
+    if(workTab==="invalid")return l.handledStatus==="invalid";
+    return true;
+  }).forEach(l=>{
+    const d=document.createElement("div");
+    d.className="item"+(l.id===selected?" active":"");
+    d.innerHTML=`<b>${l.name}</b><br>${tag(l)}
+      ${l.handledStatus==="invalid"?`<span class="tag invalidTag">無效</span>`:""}
+      <div class="time">${new Date(l.createdAt).toLocaleString()}</div>`;
+    d.onclick=()=>{selected=l.id;renderDetail(l);};
+    list.appendChild(d);
+  });
+}
+
+function renderDetail(l){
+  if(l.handledStatus==="invalid"){
+    detail.innerHTML=`<h3>${l.name}</h3>
+      <div class="section"><div class="label">無效原因</div>${l.invalidReason}</div>`;
+    return;
+  }
+
+  detail.innerHTML=`<h3>${l.name}</h3>
+  ${["region","phone","line","role","house","age","reserve","contact","size","progress","budget","address"]
+    .map(k=>`<div class="section"><div class="label">${k}</div><input value="${l[k]||""}"></div>`).join("")}
+  <div class="actions">
+  ${l.handledStatus==="new"
+    ? `<button class="btn contact" onclick="claim(${l.id})">馬上聯絡</button>`
+    : ``}
+
+  ${l.handledStatus==="new"
+    ? `<button class="btn invalidBtn" onclick="openInvalidModal(${l.id})">設為無效</button>`
+    : ``}
+
+  ${l.handledUser===currentUserId && l.handledStatus!=="invalid"
+    ? `<button class="btn invalidBtn" onclick="openInvalidModal(${l.id})">設為無效</button>`
+    : ``}
+
+  ${l.handledUser===currentUserId && l.handledStatus!=="invalid"
+    ? `<button class="btn assign" onclick="openAssign()">派發設計師</button>`
+    : ``}
+  </div>`;
+}
+function closeAssign(){
+  document.getElementById("assignModal").classList.remove("active");
+}
+
+function onAssignBackdrop(e){
+  // 點到背景（modal本體）才關，點到內容不關
+  if(e.target.id === "assignModal") closeAssign();
+}
+
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape"){
+    closeAssign();
+    closeOnsiteModal();
+    closeInvalidModal();
+  }
+});
+
+
+function claim(id){
+  const l=leads.find(x=>x.id===id);
+  if(!l)return;
+  l.handledStatus="claimed";
+  l.handledUser=currentUserId;
+  render();
+  if(selected===id)renderDetail(l);
+}
+
+function openInvalidModal(id){
+  const l=leads.find(x=>x.id===id);
+  if(!l)return;
+  document.getElementById("invalidLeadId").value=id;
+  document.getElementById("invalidReasonSelect").value="";
+  document.getElementById("invalidModal").classList.add("active");
+}
+
+function closeInvalidModal(){
+  document.getElementById("invalidModal").classList.remove("active");
+}
+
+function submitInvalid(){
+  const id=parseInt(document.getElementById("invalidLeadId").value);
+  const reason=document.getElementById("invalidReasonSelect").value;
+  if(!reason){
+    alert("請選擇無效原因");
+    return;
+  }
+  const l=leads.find(x=>x.id===id);
+  if(!l)return;
+  l.handledStatus="invalid";
+  l.invalidReason=reason;
+  l.handledUser=null;
+  closeInvalidModal();
+  render();
+  renderDetail(l);
+}
+
+/* ===== 現場 ===== */
+function openOnsiteModal(){onsiteModal.classList.add("active");}
+function closeOnsiteModal(){onsiteModal.classList.remove("active");}
+
+function createOnsite(){
+  leads.unshift({
+    id:Date.now(),source:"onsite",branch:"台中",
+    createdAt:Date.now(),name:osName.value,phone:osPhone.value,
+    line:osLine.value,region:osRegion.value,
+    role:"屋主",house:"",age:"",
+    reserve:"",contact:"",size:osSize.value,
+    progress:"現場諮詢",budget:osBudget.value,
+    address:osAddress.value,note:osNote.value,
+    handledStatus:"claimed",handledUser:currentUserId,invalidReason:null
+  });
+  closeOnsiteModal();render();
+}
+
+function openAssign(){
+  const body = document.getElementById("designerRows");
+  body.innerHTML = "";
+
+  designers.forEach(d=>{
+    const rate = d.total ? ((d.contract/d.total)*100).toFixed(2) : "0.00";
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${d.name}</td>
+      <td>${d.total}</td>
+      <td>${d.total - d.contract}</td>
+      <td class="good">${d.contract}</td>
+      <td style="color:${rate>=20?'#3ddc97':'#ffcc00'}">${rate}%</td>
+      <td>
+        <button class="btn" style="padding:4px 8px" onclick="assignTo('${d.name}')">
+          指派
+        </button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+
+  document.getElementById("assignModal").classList.add("active");
+}
+
+function assignTo(name){
+  alert(`已派發給設計師：${name}`);
+  document.getElementById("assignModal").classList.remove("active");
+}
+
+
+render();
+</script>
+
+
+<div class="modal" id="assignModal">
+  <div class="modal-box" style="width:520px">
+     <div class="modal-header">
+      <h3 style="margin:0">派發設計師</h3>
+      <button class="icon-btn" onclick="closeAssign()" aria-label="關閉">✕</button>
+    </div>
+    <div class="sub">請依目前案件量與成交率評估派發</div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>設計師</th>
+          <th>目前案件</th>
+          <th>未成交</th>
+          <th>已成交</th>
+          <th>成交率</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="designerRows"></tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>人事結算管理｜主管審核視角</title>
+<style>
+body{
+  margin:0;
+  background:#0f172a;
+  color:#e5e7eb;
+  font-family:system-ui,-apple-system;
+}
+.container{
+  max-width:1100px;
+  margin:32px auto;
+  padding:0 20px;
+}
+h1{font-size:22px;margin-bottom:6px;}
+.subtitle{color:#9ca3af;font-size:14px;margin-bottom:20px;}
+
+.card{
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:14px;
+  padding:16px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  padding:10px;
+  border-bottom:1px solid #1f2937;
+}
+th{
+  color:#9ca3af;
+  font-weight:500;
+  text-align:left;
+}
+tr.employee-row:hover{
+  background:#020617;
+  cursor:pointer;
+}
+
+.badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+}
+.warn{background:rgba(239,68,68,.15);color:#ef4444;}
+.ok{background:rgba(34,197,94,.15);color:#22c55e;}
+.progress {
+  background: rgba(59, 130, 246, 0.15); /* 藍色底 */
+  color: #3b82f6;                      /* 藍字 */
+}
+
+
+.detail-row td{
+  background:#020617;
+  padding:0;
+}
+.detail-box{
+  padding:18px 20px;
+  border-top:1px dashed #1f2937;
+}
+
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+.kpi div{
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:12px;
+}
+.kpi span{font-size:12px;color:#9ca3af;}
+.kpi strong{font-size:22px;display:block;margin-top:4px;}
+
+.mono{font-family:ui-monospace;}
+.hidden{display:none;}
+.section-title{
+  font-size:16px;
+  margin-bottom:12px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>人事管理</h1>
+  <div class="subtitle">
+    點擊員工列，可於該員工下方展開人事結算與任務卡統計資訊。
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>員工代碼</th>
+          <th>部門</th>
+          <th>職位</th>
+          <th>完成任務卡</th>
+          <th>審核失敗次數</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- EMP-D-017 -->
+        <tr class="employee-row" onclick="toggleDetail('d1')">
+          <td class="mono">EMP-017</td>
+          <td>設計部</td>
+          <td>繪圖專員</td>
+          <td>18</td>
+          <td><span class="badge warn">3</span></td>
+        </tr>
+        <tr id="d1" class="detail-row hidden">
+          <td colspan="5">
+            <div class="detail-box">
+              <div class="section-title">繪圖專員｜EMP-017</div>
+
+              <div class="kpi">
+                <div><span>已完成任務卡</span><strong>4</strong></div>
+                <div><span>審核失敗次數</span><strong>3</strong></div>
+                <div><span>平均每卡失敗</span><strong>75%</strong></div>
+                <div><span>平均每項目失敗</span><strong>13.04%</strong></div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>合約編號</th>
+                    <th>任務卡</th>
+                    <th>審核項目數</th>
+                    <th>失敗次數</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">CT-24031</td>
+                    <td>任務卡D｜施工圖繪製</td>
+                    <td>6</td>
+                    <td>1</td>
+                    <td><span class="badge progress">進行中</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">CT-24030</td>
+                    <td>任務卡D｜施工圖繪製</td>
+                    <td>6</td>
+                    <td>0</td>
+                    <td><span class="badge ok">已完成</span></td>
+                  </tr>                  <tr>
+                    <td class="mono">CT-24029</td>
+                    <td>任務卡D｜施工圖繪製</td>
+                    <td>6</td>
+                    <td>0</td>
+                    <td><span class="badge ok">已完成</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">CT-24024</td>
+                    <td>任務卡D｜施工圖繪製</td>
+                    <td>5</td>
+                    <td>2</td>
+                    <td><span class="badge ok">已完成</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+
+        <!-- EMP-D-022 -->
+        <tr class="employee-row">
+          <td class="mono">EMP-022</td>
+          <td>設計部</td>
+          <td>繪圖專員</td>
+          <td>12</td>
+          <td><span class="badge ok">0</span></td>
+        </tr>
+
+        <!-- EMP-D-031 -->
+        <tr class="employee-row">
+          <td class="mono">EMP-031</td>
+          <td>設計部</td>
+          <td>設計師</td>
+          <td>9</td>
+          <td><span class="badge warn">1</span></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function toggleDetail(id){
+  const row = document.getElementById(id);
+  row.classList.toggle('hidden');
+}
+</script>
+
+</body>
+</html>
