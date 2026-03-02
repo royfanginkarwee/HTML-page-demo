@@ -1,0 +1,2411 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>整合管理系統</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; }
+    .app { display: flex; min-height: 100vh; }
+    /* 頂部 + 左側 */
+    .header { height: 56px; background: #1a365d; color: #fff; display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; }
+    .header .brand { font-size: 18px; font-weight: 600; color: #90cdf4; }
+    .header .menu-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 4px 8px; }
+    .sidebar { width: 240px; background: #2c5282; color: #fff; flex-shrink: 0; overflow-y: auto; }
+    .sidebar.collapsed { width: 0; overflow: hidden; }
+    .nav-item { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-left: 3px solid transparent; }
+    .nav-item:hover { background: rgba(255,255,255,.08); }
+    .nav-item.active { background: rgba(255,255,255,.12); border-left-color: #63b3ed; }
+    .nav-item .arrow { margin-left: auto; transition: transform .2s; }
+    .nav-item.open .arrow { transform: rotate(90deg); }
+    .nav-sub { display: none; background: rgba(0,0,0,.15); }
+    .nav-item.open + .nav-sub { display: block; }
+    .nav-sub a { display: block; padding: 10px 16px 10px 40px; color: #e2e8f0; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    .nav-sub a:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .nav-sub a.current { background: rgba(99,179,237,.25); color: #fff; border-left-color: #63b3ed; }
+    /* 主內容 */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff; }
+    .page-title { font-size: 20px; font-weight: 600; margin: 0 0 16px; padding: 20px 24px 0; }
+    .search-bar { padding: 16px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; border-bottom: 1px solid #e2e8f0; background: #fff; }
+    .search-bar .field { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 120px; }
+    .search-bar .field label { font-size: 13px; color: #4a5568; display: block; margin-bottom: 0; }
+    .search-bar select, .search-bar input[type="text"], .search-bar input[type="month"], .search-bar input[type="date"] { padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px; min-width: 120px; width: 100%; }
+    .search-bar .btn-wrap { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; align-items: flex-end; }
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+    .btn-primary { background: #3182ce; color: #fff; }
+    .btn-primary:hover { background: #2c5282; }
+    .btn-secondary { background: #e2e8f0; color: #4a5568; }
+    .btn-secondary:hover { background: #cbd5e0; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-edit { background: #3182ce; color: #fff; }
+    .btn-delete { background: #e53e3e; color: #fff; }
+    .link-all { font-size: 12px; color: #3182ce; cursor: pointer; }
+    .link-all:hover { text-decoration: underline; }
+    .table-wrap { padding: 16px 24px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f7fafc; color: #4a5568; font-weight: 500; }
+    tr:hover { background: #f7fafc; }
+    .page-content { display: none; }
+    .page-content.active { display: block; flex: 1; }
+    .pager { padding: 12px 24px; text-align: center; color: #718096; font-size: 13px; }
+    .pager span { margin: 0 8px; cursor: pointer; }
+    .pager span.current { color: #3182ce; font-weight: 600; }
+    .good { color: #38a169; }
+    .bad { color: #e53e3e; }
+    /* Dialog */
+    .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .dialog-overlay.show { display: flex; }
+    .dialog-box { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 90%; max-width: 480px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+    .dialog-box.large { max-width: 720px; width: 95%; }
+    .dialog-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .dialog-header .dialog-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #4a5568; padding: 0 4px; line-height: 1; }
+    .dialog-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .dialog-body .form-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+    .dialog-body .form-table th, .dialog-body .form-table td { padding: 8px; border: 1px solid #e2e8f0; vertical-align: middle; }
+    .dialog-body .form-table th { background: #f7fafc; color: #4a5568; font-weight: 500; }
+    .dialog-body .form-table input, .dialog-body .form-table select { width: 100%; padding: 6px 8px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 13px; }
+    .dialog-body .form-table .btn-cell { width: 36px; text-align: center; }
+    .dialog-body .form-table .btn-delete-row { background: none; border: none; color: #e53e3e; cursor: pointer; font-size: 16px; padding: 0 4px; }
+    .dialog-body .form-row { margin-bottom: 14px; }
+    .dialog-body .form-row label { display: block; font-size: 13px; color: #4a5568; margin-bottom: 4px; }
+    .dialog-body .form-row input, .dialog-body .form-row select, .dialog-body .form-row textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; }
+    .dialog-body .form-static { display: inline-block; padding: 8px 10px; font-size: 14px; color: #2d3748; }
+    .dialog-body .form-row textarea { min-height: 60px; resize: vertical; }
+    .dialog-body .section-title { font-size: 15px; font-weight: 600; margin: 16px 0 10px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .dialog-body .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .co-op-cell { position: relative; }
+    .co-op-cell .btn { min-width: 28px; padding: 4px 8px; }
+    .co-action-menu { position: fixed; min-width: 140px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.15); z-index: 9999; display: none; padding: 4px 0; }
+    .co-action-menu.show { display: block; }
+    .co-action-menu button { display: block; width: 100%; padding: 8px 12px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; color: #333; }
+    .co-action-menu button:hover { background: #f7fafc; }
+    .dialog-footer { padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; }
+    /* 側欄 Drawer */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; z-index: 999; }
+    .drawer-overlay.show { display: block; }
+    .drawer { position: fixed; top: 0; right: 0; width: 480px; max-width: 100%; height: 100%; background: #fff; box-shadow: -4px 0 20px rgba(0,0,0,.15); display: flex; flex-direction: column; z-index: 1000; transform: translateX(100%); transition: transform .25s ease; }
+    .drawer.show { transform: translateX(0); }
+    .drawer-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .drawer-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .drawer-body .form-row { margin-bottom: 14px; }
+    .drawer-body .form-row label { display: block; font-size: 13px; color: #4a5568; margin-bottom: 4px; }
+    .drawer-body .form-row input, .drawer-body .form-row select, .drawer-body .form-row textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; }
+    .drawer-body .form-row textarea { min-height: 60px; resize: vertical; }
+    .drawer-body .section-title { font-size: 15px; font-weight: 600; margin: 16px 0 10px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .drawer-footer { padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; }
+    .hashtag-list { max-height: 160px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
+    .hashtag-list label { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; font-weight: normal; }
+    .hashtag-list input[type="radio"] { margin: 0; }
+    .inventory-readonly { font-size: 13px; }
+    .inventory-readonly th, .inventory-readonly td { padding: 8px 10px; }
+    .drawer-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #4a5568; padding: 0 4px; line-height: 1; }
+    .readonly-hint { font-size: 12px; color: #718096; margin-bottom: 12px; }
+    .tabs { padding: 12px 24px 0; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; }
+    .tabs .tab { padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 14px; color: #4a5568; border-bottom: 2px solid transparent; }
+    .tabs .tab:hover { color: #3182ce; }
+    .tabs .tab.active { color: #3182ce; font-weight: 600; border-bottom-color: #3182ce; }
+    .tab-panel { padding: 16px 24px; }
+    .content-panel { margin: 16px 24px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f7fafc; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1001; }
+    .modal-inner { background: #fff; padding: 24px; border-radius: 12px; min-width: 320px; }
+    .modal-inner h3 { margin: 0 0 16px; }
+    .modal-inner .form-row { margin-bottom: 12px; }
+    .modal-inner .form-row label { display: block; margin-bottom: 4px; }
+    .modal-inner select, .modal-inner input { width: 100%; padding: 8px; }
+    .cp-quote-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+    .cp-quote-table th, .cp-quote-table td { padding: 8px; text-align: left; border: 1px solid #e2e8f0; }
+    .cp-quote-table th { background: #f7fafc; color: #4a5568; font-weight: 500; }
+    .cp-quote-table .cp-category-row { background: #edf2f7; font-weight: 600; }
+    .cp-quote-table .cp-total-row { font-weight: 600; background: #e6fffa; }
+    .cp-gantt-wrap { overflow-x: auto; margin: 12px 0; }
+    .cp-gantt-header { display: flex; gap: 2px; margin-bottom: 6px; font-size: 11px; color: #718096; }
+    .cp-gantt-header .cp-gantt-label { width: 180px; flex-shrink: 0; }
+    .cp-gantt-header .cp-gantt-timeline { flex-shrink: 0; display: flex; gap: 2px; }
+    .cp-gantt-item { display: flex; gap: 2px; margin-bottom: 6px; align-items: center; min-height: 28px; }
+    .cp-gantt-item .cp-gantt-label { width: 180px; flex-shrink: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cp-gantt-item .cp-gantt-bar-wrap { position: relative; height: 24px; background: #f7fafc; border-radius: 4px; flex-shrink: 0; }
+    .cp-gantt-item .cp-gantt-bar { position: absolute; height: 100%; background: #3182ce; border-radius: 4px; font-size: 10px; color: #fff; display: flex; align-items: center; justify-content: center; }
+    .cp-package-item { background: #edf2f7; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .cp-package-item .cp-package-title { font-weight: 600; margin-bottom: 8px; }
+    /* 施作分類與驗收：可展開母項目 */
+    .ca-parent { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; background: #fff; }
+    .ca-parent-header { padding: 14px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #f7fafc; border-bottom: 1px solid transparent; transition: background .2s; }
+    .ca-parent-header:hover { background: #edf2f7; }
+    .ca-parent.expanded .ca-parent-header { border-bottom-color: #e2e8f0; }
+    .ca-parent-header .ca-parent-name { font-weight: 600; font-size: 15px; color: #2d3748; }
+    .ca-parent-header .ca-parent-arrow { font-size: 18px; color: #718096; transition: transform .2s; }
+    .ca-parent.expanded .ca-parent-arrow { transform: rotate(90deg); }
+    .ca-parent-body { display: none; padding: 0; }
+    .ca-parent.expanded .ca-parent-body { display: block; }
+    .ca-tabs { display: flex; gap: 0; padding: 0 16px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+    .ca-tabs .ca-tab { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #4a5568; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .ca-tabs .ca-tab:hover { color: #3182ce; }
+    .ca-tabs .ca-tab.active { color: #3182ce; font-weight: 600; border-bottom-color: #3182ce; }
+    .ca-tab-panel { padding: 16px; display: none; }
+    .ca-tab-panel.active { display: block; }
+    .ca-panel-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .ca-panel-toolbar .btn { margin-left: 8px; }
+    .ca-edit-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ca-edit-table th, .ca-edit-table td { padding: 10px 12px; text-align: left; border: 1px solid #e2e8f0; }
+    .ca-edit-table th { background: #f7fafc; color: #4a5568; font-weight: 500; }
+    .ca-edit-table tbody tr:hover { background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <div class="nav-item" data-id="customer" onclick="toggleNav('customer')">
+          <span>接單管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="customer-order" class="current">客服接單派單</a>
+        </div>
+
+        <div class="nav-item" data-id="marketing" onclick="toggleNav('marketing')">
+          <span>行銷管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="marketing-stats">行銷主管統計</a>
+          <a href="#" data-page="marketing-audit">行銷主管審核</a>
+          <a href="#" data-page="marketing-project">行銷專案管控</a>
+          <a href="#" data-page="marketing-form">表單管理</a>
+        </div>
+
+        <div class="nav-item" data-id="design" onclick="toggleNav('design')">
+          <span>設計管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="designer-case">設計師案件管理</a>
+        </div>
+
+        <div class="nav-item" data-id="construction" onclick="toggleNav('construction')">
+          <span>工務管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="construction-package">工務發包管理</a>
+          <a href="#" data-page="construction-accept">施作分類與驗收</a>
+        </div>
+
+        <div class="nav-item" data-id="material" onclick="toggleNav('material')">
+          <span>物料管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="material-control">物料管控</a>
+        </div>
+
+        <div class="nav-item" data-id="hr" onclick="toggleNav('hr')">
+          <span>人事管理</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="nav-sub">
+          <a href="#" data-page="hr-settlement">繪圖專員任務卡統計</a>
+        </div>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="header">
+        <button class="menu-btn" onclick="toggleSidebar()" aria-label="選單">☰</button>
+        <span class="brand">整合管理系統</span>
+      </header>
+
+      <!-- 客服接單派單（表單回覆 → 接單 → 派設計師 → 立案） -->
+      <div id="page-customer-order" class="page-content active">
+        <h1 class="page-title">客服接單派單</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>姓名</label>
+            <input type="text" id="co-name" placeholder="關鍵字">
+          </div>
+          <div class="field">
+            <label>電話</label>
+            <input type="text" id="co-phone" placeholder="關鍵字">
+          </div>
+          <div class="field">
+            <label>表單</label>
+            <select id="co-form">
+              <option value="">全選</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>狀態</label>
+            <select id="co-status">
+              <option value="">全選</option>
+              <option value="pending">待處理</option>
+              <option value="claimed">已接單</option>
+              <option value="converted">已立案</option>
+              <option value="closed">已結案</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openAddFormResponseDialog()">新增</button>
+            <button class="btn btn-primary" onclick="doQuery('customer-order')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('customer-order')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>電話</th>
+                <th>地址</th>
+                <th>表單</th>
+                <th>狀態</th>
+                <th>送出時間</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-customer-order"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+        <!-- 查看 form_response + form_response_item Dialog（唯讀） -->
+        <div class="dialog-overlay" id="formResponseViewOverlay" onclick="if(event.target===this) closeFormResponseView()">
+          <div class="dialog-box large" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span>表單回覆內容</span>
+              <button type="button" class="dialog-close" onclick="closeFormResponseView()">×</button>
+            </div>
+            <div class="dialog-body" id="formResponseViewBody"></div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeFormResponseView()">關閉</button>
+            </div>
+          </div>
+        </div>
+        <!-- 新增 form_response Dialog（固定欄位 + 選欄位與輸入值） -->
+        <div class="dialog-overlay" id="addFormResponseOverlay" onclick="if(event.target===this) closeAddFormResponseDialog()">
+          <div class="dialog-box large" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span>新增現場諮詢</span>
+              <button type="button" class="dialog-close" onclick="closeAddFormResponseDialog()">×</button>
+            </div>
+            <div class="dialog-body">
+              <div class="section-title">固定欄位</div>
+              <div class="form-row"><label>姓名（必填）</label><input type="text" id="new-fr-name" placeholder="客戶姓名"></div>
+              <div class="form-row"><label>電話（必填）</label><input type="text" id="new-fr-phone" placeholder="電話"></div>
+              <div class="form-row"><label>地址（必填）</label><input type="text" id="new-fr-address" placeholder="地址"></div>
+              <div class="section-title">欄位（欄位名稱可搜尋或手動新增）</div>
+              <datalist id="formNameDatalist"></datalist>
+              <div class="table-wrap" style="max-height:240px; overflow-y:auto;">
+                <table class="form-table">
+                  <thead><tr><th>欄位名稱</th><th>輸入值</th><th class="btn-cell"></th></tr></thead>
+                  <tbody id="tb-new-fr-items"></tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="addNewFormResponseItemRow()">新增一筆</button>
+            </div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeAddFormResponseDialog()">取消</button>
+              <button type="button" class="btn btn-primary" onclick="saveNewFormResponse()">確定</button>
+            </div>
+          </div>
+        </div>
+        <!-- 備註 Dialog（本人接單可新增） -->
+        <div class="dialog-overlay" id="addNoteOverlay" onclick="if(event.target===this) closeAddNoteDialog()">
+          <div class="dialog-box" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span>新增備註</span>
+              <button type="button" class="dialog-close" onclick="closeAddNoteDialog()">×</button>
+            </div>
+            <div class="dialog-body">
+              <input type="hidden" id="note-form-response-id" value="">
+              <div class="form-row"><label>備註內容</label><textarea id="note-content" rows="3" placeholder="輸入內部聯繫紀錄"></textarea></div>
+            </div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeAddNoteDialog()">取消</button>
+              <button type="button" class="btn btn-primary" onclick="submitNote()">確定</button>
+            </div>
+          </div>
+        </div>
+        <!-- 表單回覆詳情 Dialog（唯讀 + 聯繫紀錄 + 接單/派設計師/立案） -->
+        <div class="dialog-overlay" id="responseDetailOverlay" onclick="if(event.target===this) closeResponseDetail()">
+          <div class="dialog-box large" id="responseDetailDialog" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span>表單回覆詳情</span>
+              <button type="button" class="dialog-close" onclick="closeResponseDetail()">×</button>
+            </div>
+            <div class="dialog-body" id="responseDetailBody">
+              <p class="readonly-hint">表單內容僅供查看，不可編輯。</p>
+              <div id="responseDetailFixed"></div>
+              <div id="responseDetailItems"></div>
+              <h4>內部聯繫紀錄</h4>
+              <ul id="responseDetailLog"></ul>
+              <div class="form-row"><label>新增紀錄</label><input type="text" id="responseDetailLogInput" placeholder="輸入聯繫備註"><button type="button" class="btn btn-primary" onclick="addInteractionLog()">新增</button></div>
+              <hr/>
+              <h4>操作</h4>
+              <button type="button" id="btn-claim" class="btn btn-primary" onclick="claimLead()">接單（建立 Lead）</button>
+              <button type="button" id="btn-assign" class="btn btn-primary" onclick="openAssignDesignerDialog()" style="display:none;">派設計師</button>
+              <button type="button" id="btn-project" class="btn btn-primary" onclick="createProjectFromLead()" style="display:none;">立案（建立 Project）</button>
+            </div>
+          </div>
+        </div>
+        <!-- 派設計師 Dialog（依案件量與成交率評估派發） -->
+        <div id="assignDesignerDialog" class="modal" style="display:none;">
+          <div class="modal-inner" style="width:520px; max-width:95%;">
+            <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <h3 style="margin:0;">派發設計師</h3>
+              <button type="button" class="dialog-close" onclick="closeAssignDesignerDialog()" aria-label="關閉">×</button>
+            </div>
+            <p class="sub" style="font-size:13px; color:#718096; margin:8px 0 12px;">請依目前案件量與成交率評估派發</p>
+            <p style="margin:0 0 8px; font-size:13px;">Lead：<strong id="assign-lead-code"></strong></p>
+            <table class="form-table" style="margin-top:8px;">
+              <thead>
+                <tr>
+                  <th>設計師</th>
+                  <th>目前案件</th>
+                  <th>未成交</th>
+                  <th>已成交</th>
+                  <th>成交率</th>
+                  <th class="btn-cell"></th>
+                </tr>
+              </thead>
+              <tbody id="assignDesignerRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 行銷主管統計 -->
+      <div id="page-marketing-stats" class="page-content">
+        <h1 class="page-title">行銷填單統計</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>月份</label>
+            <input type="month" id="ms-month" value="2025-10">
+          </div>
+          <div class="field">
+            <label>地區</label>
+            <select id="ms-region">
+              <option value="">全選</option>
+              <option value="北區">北區</option>
+              <option value="桃園">桃園</option>
+              <option value="台中">台中</option>
+              <option value="彰化">彰化</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openAddDialog('marketing-stats')">新增</button>
+            <button class="btn btn-primary" onclick="doQuery('marketing-stats')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('marketing-stats')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>分店</th>
+                <th>總案件</th>
+                <th class="good">有效</th>
+                <th class="bad">無效</th>
+                <th>自來客</th>
+                <th>預算不足</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-marketing-stats"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+      </div>
+
+      <!-- 行銷主管審核 -->
+      <div id="page-marketing-audit" class="page-content">
+        <h1 class="page-title">行銷主管審核</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>專案</label>
+            <select id="ma-project">
+              <option value="">全選</option>
+              <option value="裝修預算系列">裝修預算系列</option>
+              <option value="設計師日常">設計師日常</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>狀態</label>
+            <select id="ma-status">
+              <option value="">全選</option>
+              <option value="draft">draft</option>
+              <option value="reviewed">reviewed</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openAddDialog('marketing-audit')">新增</button>
+            <button class="btn btn-primary" onclick="doQuery('marketing-audit')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('marketing-audit')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>專案</th>
+                <th>企劃腳本</th>
+                <th>負責人</th>
+                <th>上片日</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-marketing-audit"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+      </div>
+
+      <!-- 行銷專案管控 -->
+      <div id="page-marketing-project" class="page-content">
+        <h1 class="page-title">行銷專案管控</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>專案名稱 / 代碼</label>
+            <input type="text" id="mp-name" placeholder="關鍵字或 campaign_code">
+          </div>
+          <div class="field">
+            <label>狀態</label>
+            <select id="mp-status">
+              <option value="">全選</option>
+              <option value="待審核">待審核</option>
+              <option value="已通過">已通過</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>分店</label>
+            <select id="mp-branch">
+              <option value="">全選</option>
+              <option value="">總公司</option>
+              <option value="北區">北區</option>
+              <option value="桃園">桃園</option>
+              <option value="台中">台中</option>
+              <option value="彰化">彰化</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openAddDialog('marketing-project')">新增專案</button>
+            <button class="btn btn-primary" onclick="doQuery('marketing-project')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('marketing-project')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>campaign_code</th>
+                <th>專案名稱</th>
+                <th>分店</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-marketing-project"></tbody>
+          </table>
+        </div>
+        <div id="mp-content-panel" class="content-panel" style="display:none;">
+          <h3>行銷內容（<span id="mp-content-title"></span>）</h3>
+          <table>
+            <thead><tr><th>主題/腳本</th><th>使用表單</th><th>製作完成日</th><th>上片日期</th></tr></thead>
+            <tbody id="tb-marketing-content"></tbody>
+          </table>
+          <button type="button" class="btn btn-secondary" onclick="closeMarketingContentPanel()">關閉</button>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+      </div>
+
+      <!-- 表單管理 -->
+      <div id="page-marketing-form" class="page-content">
+        <h1 class="page-title">表單管理</h1>
+        <div class="tabs">
+          <button type="button" class="tab active" data-tab="form-master">表單主檔</button>
+          <button type="button" class="tab" data-tab="form-response">表單回覆</button>
+        </div>
+        <div id="panel-form-master" class="tab-panel">
+          <div class="search-bar">
+            <div class="field"><label>表單名稱</label><input type="text" id="fm-name" placeholder="關鍵字"></div>
+            <div class="btn-wrap">
+              <button class="btn btn-primary" onclick="openAddDialog('form-master')">新增表單</button>
+              <button class="btn btn-primary" onclick="doQuery('marketing-form')">查詢</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>表單名稱</th><th>代碼</th><th>版本</th><th>狀態</th><th>操作</th></tr></thead>
+              <tbody id="tb-form-master"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="panel-form-response" class="tab-panel" style="display:none;">
+          <div class="search-bar">
+            <div class="field"><label>表單</label><select id="fr-form"><option value="">全選</option></select></div>
+            <div class="field"><label>狀態</label><select id="fr-status"><option value="">全選</option><option value="pending">待處理</option><option value="claimed">已接單</option><option value="converted">已立案</option><option value="closed">已結案</option></select></div>
+            <div class="btn-wrap"><button class="btn btn-primary" onclick="doQuery('marketing-form')">查詢</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>姓名</th><th>電話</th><th>地址</th><th>表單</th><th>狀態</th><th>送出時間</th><th>操作</th></tr></thead>
+              <tbody id="tb-form-response"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 表單內容編輯 Dialog（問券欄位設定格式） -->
+        <div class="dialog-overlay" id="formMasterEditDialogOverlay" onclick="if(event.target===this) closeFormMasterEditDialog()">
+          <div class="dialog-box large" id="formMasterEditDialog" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span id="formMasterEditTitle">編輯</span>
+              <button type="button" class="dialog-close" onclick="closeFormMasterEditDialog()">×</button>
+            </div>
+            <div class="dialog-body">
+              <input type="hidden" id="fm-edit-master-id" value="">
+              <div class="form-row"><label>ID</label><input type="text" id="fm-edit-id-ro" readonly style="background:#f7fafc; width:80px;"></div>
+              <div class="form-row"><label>表單名稱（必填）</label><input type="text" id="fm-edit-name" placeholder="例：安裝滿意度問券"></div>
+              <div class="form-row"><label>表單類型（必填）</label><select id="fm-edit-type"><option value="預約表單">預約表單</option><option value="滿意度">滿意度</option><option value="導流表單">導流表單</option></select></div>
+              <div class="section-title" style="margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;">表單欄位設定</div>
+              <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+                <table class="form-table">
+                  <thead><tr><th>欄位名稱</th><th>欄位類型</th><th>欄位長度</th><th>是否必填</th><th>欄位擴充</th><th>欄位提示</th><th class="btn-cell"></th></tr></thead>
+                  <tbody id="tb-form-field-in-dialog"></tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="addFormFieldRow()">新增欄位</button>
+            </div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeFormMasterEditDialog()">取消</button>
+              <button type="button" class="btn btn-primary" onclick="saveFormMasterEditFromDialog()">儲存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 設計師案件管理（案件列表 = project） -->
+      <div id="page-designer-case" class="page-content">
+        <h1 class="page-title">設計師案件管理</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>狀態</label>
+            <select id="dc-status">
+              <option value="">全選</option>
+              <option value="contact">聯絡關懷中</option>
+              <option value="measure">待丈量</option>
+              <option value="signing">待簽約</option>
+              <option value="material">待選材</option>
+              <option value="outsourcing">發包中</option>
+              <option value="construction">施作中</option>
+              <option value="closed">已結案</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>客戶</label>
+            <input type="text" id="dc-customer" placeholder="姓名">
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="doQuery('designer-case')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('designer-case')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>案件代碼</th>
+                <th>客戶</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-designer-case"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+        <!-- 設計師案件詳情 Dialog -->
+        <div class="dialog-overlay" id="designerProjectDetailOverlay" onclick="if(event.target===this) closeDesignerProjectDetail()">
+          <div class="dialog-box large" id="designerProjectDetailDialog" style="max-width:800px;" onclick="event.stopPropagation()">
+            <div class="dialog-header">
+              <span id="designerProjectDetailTitle">案件詳情</span>
+              <button type="button" class="dialog-close" onclick="closeDesignerProjectDetail()">×</button>
+            </div>
+            <div class="dialog-body" id="designerProjectDetailBody" style="max-height:70vh; overflow-y:auto;">
+              <!-- 由 JS 依 project.status 動態填入 -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 工務發包管理 -->
+      <div id="page-construction-package" class="page-content">
+        <h1 class="page-title">工務發包管理</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>合約代碼</label>
+            <input type="text" id="cp-code" placeholder="代碼">
+          </div>
+          <div class="field">
+            <label>客戶</label>
+            <select id="cp-customer">
+              <option value="">全選</option>
+              <option value="陳小姐">陳小姐</option>
+              <option value="林先生">林先生</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="doQuery('construction-package')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('construction-package')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>合約代碼</th>
+                <th>案件代碼</th>
+                <th>客戶</th>
+                <th>地址</th>
+                <th>預估工期</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-construction-package"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+
+        <!-- 工務發包：報價單明細 Dialog -->
+        <div class="dialog-overlay" id="cpQuoteOverlay" onclick="if(event.target===this) closeCpQuoteDialog()">
+          <div class="dialog-box large" onclick="event.stopPropagation()" style="max-width:900px">
+            <div class="dialog-header">
+              <span>報價單明細</span>
+              <button type="button" class="dialog-close" onclick="closeCpQuoteDialog()">×</button>
+            </div>
+            <div class="dialog-body" id="cpQuoteBody"></div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeCpQuoteDialog()">關閉</button>
+            </div>
+          </div>
+        </div>
+        <!-- 工務發包：施工甘特圖 Dialog -->
+        <div class="dialog-overlay" id="cpGanttOverlay" onclick="if(event.target===this) closeCpGanttDialog()">
+          <div class="dialog-box large" onclick="event.stopPropagation()" style="max-width:95%; min-width:640px">
+            <div class="dialog-header">
+              <span>施工甘特圖</span>
+              <button type="button" class="dialog-close" onclick="closeCpGanttDialog()">×</button>
+            </div>
+            <div class="dialog-body" id="cpGanttBody" style="overflow-x:auto"></div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeCpGanttDialog()">關閉</button>
+            </div>
+          </div>
+        </div>
+        <!-- 工務發包：發包配置 Dialog（含當前新增之發包內容） -->
+        <div class="dialog-overlay" id="cpPackageOverlay" onclick="if(event.target===this) closeCpPackageDialog()">
+          <div class="dialog-box large" onclick="event.stopPropagation()" style="max-width:1000px">
+            <div class="dialog-header">
+              <span>發包配置</span>
+              <button type="button" class="dialog-close" onclick="closeCpPackageDialog()">×</button>
+            </div>
+            <div class="dialog-body" id="cpPackageBody"></div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-primary" onclick="saveCpPackageConfig()">確定配置</button>
+              <button type="button" class="btn btn-secondary" onclick="closeCpPackageDialog()">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 施作分類與驗收 -->
+      <div id="page-construction-accept" class="page-content">
+        <h1 class="page-title">施工施作分類與驗收管理</h1>
+        <p class="readonly-hint" style="margin:0 24px 12px">工程報價子項目與施工驗收檢查表母資料管理</p>
+        <div id="ca-parent-list" style="margin:0 24px"></div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+
+        <!-- 編輯/新增 子項目或驗收項目 Dialog -->
+        <div class="dialog-overlay" id="caEditDialogOverlay" onclick="if(event.target===this) closeCaEditDialog()">
+          <div class="dialog-box" onclick="event.stopPropagation()" style="max-width:520px">
+            <div class="dialog-header">
+              <span id="caEditDialogTitle">編輯</span>
+              <button type="button" class="dialog-close" onclick="closeCaEditDialog()">×</button>
+            </div>
+            <div class="dialog-body" id="caEditDialogBody"></div>
+            <div class="dialog-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeCaEditDialog()">取消</button>
+              <button type="button" class="btn btn-primary" onclick="saveCaEdit()">儲存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 人事｜繪圖專員任務卡統計 -->
+      <div id="page-hr-settlement" class="page-content">
+        <h1 class="page-title">人事結算｜繪圖專員任務卡統計</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>部門</label>
+            <select id="hr-dept">
+              <option value="">全選</option>
+              <option value="設計部">設計部</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>職位</label>
+            <select id="hr-role">
+              <option value="">全選</option>
+              <option value="繪圖專員">繪圖專員</option>
+              <option value="設計師">設計師</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openAddDialog('hr-settlement')">新增</button>
+            <button class="btn btn-primary" onclick="doQuery('hr-settlement')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('hr-settlement')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>員工代碼</th>
+                <th>部門</th>
+                <th>職位</th>
+                <th>完成任務卡</th>
+                <th>審核失敗次數</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-hr-settlement"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+      </div>
+
+      <!-- 物料管控（一頁完成商品主檔與庫存查看） -->
+      <div id="page-material-control" class="page-content">
+        <h1 class="page-title">物料管控</h1>
+        <div class="search-bar">
+          <div class="field">
+            <label>貨號</label>
+            <input type="text" id="mat-sku" placeholder="sku_code">
+          </div>
+          <div class="field">
+            <label>品名</label>
+            <input type="text" id="mat-name" placeholder="關鍵字">
+          </div>
+          <div class="field">
+            <label>品牌</label>
+            <input type="text" id="mat-brand" placeholder="關鍵字">
+          </div>
+          <div class="field">
+            <label>型號</label>
+            <input type="text" id="mat-model" placeholder="關鍵字">
+          </div>
+          <div class="field">
+            <label>分類 hashtag</label>
+            <select id="mat-category">
+              <option value="">全選</option>
+            </select>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-primary" onclick="openMaterialProductDrawer(null)">新增商品</button>
+            <button class="btn btn-secondary" onclick="openCategoryModal()">分類管理</button>
+            <button class="btn btn-primary" onclick="doQuery('material-control')">查詢</button>
+            <button class="btn btn-secondary" onclick="clearSearch('material-control')">清除搜索</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>貨號</th>
+                <th>品名</th>
+                <th>主分類</th>
+                <th>hashtag</th>
+                <th>北區倉（現有/預扣/可用）</th>
+                <th>桃園門市（現有/預扣/可用）</th>
+                <th>台中倉（現有/預扣/可用）</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tb-material-control"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span>‹</span><span class="current">1</span><span>›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 編輯商品 Dialog -->
+  <div class="dialog-overlay" id="productDialogOverlay" onclick="if(event.target===this) closeMaterialProductDrawer()">
+    <div class="dialog-box large" id="productDialog" onclick="event.stopPropagation()">
+      <div class="dialog-header">
+        <span id="productDrawerTitle">編輯商品</span>
+        <button type="button" class="dialog-close" onclick="closeMaterialProductDrawer()">×</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-row"><label>貨號</label><input type="text" id="d-sku" placeholder="同公司內唯一"></div>
+        <div class="form-row"><label>品名</label><input type="text" id="d-name"></div>
+        <div class="form-row"><label>品牌</label><input type="text" id="d-brand"></div>
+        <div class="form-row"><label>型號</label><input type="text" id="d-model"></div>
+        <div class="form-row"><label>條碼</label><input type="text" id="d-barcode"></div>
+        <div class="form-row"><label>單位</label><select id="d-base_unit"><option value="片">片</option><option value="箱">箱</option><option value="包">包</option><option value="才">才</option><option value="坪">坪</option><option value="pcs">pcs</option></select></div>
+        <div class="form-row"><label>規格描述</label><textarea id="d-spec" rows="2"></textarea></div>
+        <div class="form-row"><label>備註</label><input type="text" id="d-note"></div>
+        <div class="form-row"><label>狀態</label><select id="d-valid"><option value="1">啟用</option><option value="0">停用</option></select></div>
+        <div class="section-title" style="margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;">商品 hashtag（可多選，擇一為主分類）</div>
+        <div class="form-row">
+          <button class="btn btn-secondary btn-sm" onclick="openCategoryModal()">分類管理</button>
+        </div>
+        <div id="hashtagCheckboxes" class="hashtag-list"></div>
+        <div class="section-title" style="margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;">分店庫存明細表（唯讀）</div>
+        <table class="inventory-readonly" id="drawerInventoryTable">
+          <thead><tr><th>門市/倉</th><th>現有庫存</th><th>預扣數量</th><th>可用庫存</th></tr></thead>
+          <tbody id="drawerInventoryBody"></tbody>
+        </table>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary" onclick="closeMaterialProductDrawer()">取消</button>
+        <button class="btn btn-primary" onclick="saveMaterialProduct()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分類管理 Modal -->
+  <div class="dialog-overlay" id="categoryModal">
+    <div class="dialog-box" style="max-width: 560px;">
+      <div class="dialog-header">
+        <span>分類管理</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeCategoryModal()">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openAddCategoryForm()">＋ 新增分類</button></div>
+        <div id="categoryTreeList"></div>
+        <div id="categoryFormBlock" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #e2e8f0;">
+          <div class="form-row"><label>分類代碼</label><input type="text" id="cat-code"></div>
+          <div class="form-row"><label>分類名稱</label><input type="text" id="cat-name"></div>
+          <div class="form-row"><label>父分類</label><select id="cat-parent"><option value="">— 無 —</option></select></div>
+          <div class="form-row"><label>排序</label><input type="number" id="cat-sequence" value="0"></div>
+          <div class="form-row"><label>狀態</label><select id="cat-valid"><option value="1">啟用</option><option value="0">停用</option></select></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" onclick="saveCategory()">儲存</button>
+            <button class="btn btn-secondary" onclick="cancelCategoryForm()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 共用 Dialog -->
+  <div class="dialog-overlay" id="formDialog">
+    <div class="dialog-box">
+      <div class="dialog-header" id="dialogTitle">新增</div>
+      <div class="dialog-body" id="dialogBody"></div>
+      <div class="dialog-footer">
+        <button class="btn btn-secondary" onclick="closeDialog()">取消</button>
+        <button class="btn btn-primary" onclick="saveDialog()">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar(){
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+    function toggleNav(id){
+      const item = document.querySelector('.nav-item[data-id="'+id+'"]');
+      if(item) item.classList.toggle('open');
+    }
+    function setSelect(selectId, value){
+      const el = document.getElementById(selectId);
+      if(el) el.value = value;
+    }
+    function clearSearch(pageId){
+      const page = document.getElementById('page-'+pageId);
+      if(!page) return;
+      page.querySelectorAll('select, input[type="text"], input[type="month"], input[type="date"]').forEach(function(el){
+        if(el.type === 'text' || el.type === 'month' || el.type === 'date') el.value = '';
+        else if(el.tagName === 'SELECT') el.selectedIndex = 0;
+      });
+      doQuery(pageId);
+    }
+
+    var currentCpContractCode = null;
+    function getCpContract(contractCode){
+      return dataConstructionPackage.find(function(r){ return r.contract_code === contractCode; });
+    }
+    function formatCurrencyCp(n){ return (n == null || isNaN(n)) ? '' : '$'+Number(n).toLocaleString(); }
+    function openCpQuoteDialog(contractCode){
+      var c = getCpContract(contractCode); if(!c) return;
+      currentCpContractCode = contractCode;
+      var items = c.quote_items || [];
+      var byCat = {};
+      items.forEach(function(item){
+        if(!byCat[item.category]) byCat[item.category] = [];
+        byCat[item.category].push(item);
+      });
+      var html = '<p><strong>合約代碼：</strong>'+c.contract_code+' &nbsp; <strong>案件代碼：</strong>'+c.project_code+' &nbsp; <strong>客戶：</strong>'+c.customer_name+'</p>';
+      if(c.quote && (c.quote.estimated_start_date || c.quote.estimated_end_date)) html += '<p><strong>預估施工期間：</strong>'+ (c.quote.estimated_start_date||'') +' ~ '+ (c.quote.estimated_end_date||'') +'</p>';
+      if(items.length === 0){ html += '<p style="color:#718096">尚無報價單明細</p>'; document.getElementById('cpQuoteBody').innerHTML = html; document.getElementById('cpQuoteOverlay').classList.add('show'); return; }
+      html += '<table class="cp-quote-table"><thead><tr><th>編號</th><th>工程分類</th><th>項目名稱</th><th>數量</th><th>單位</th><th>單價</th><th>小計</th></tr></thead><tbody>';
+      Object.keys(byCat).forEach(function(cat){
+        html += '<tr class="cp-category-row"><td colspan="7">'+cat+'</td></tr>';
+        var total = 0;
+        byCat[cat].forEach(function(item, idx){
+          total += item.subtotal || 0;
+          html += '<tr><td>'+(idx+1)+'</td><td>'+item.category+'</td><td>'+item.item_name+'</td><td>'+item.quantity+'</td><td>'+item.unit+'</td><td>'+formatCurrencyCp(item.unit_price)+'</td><td>'+formatCurrencyCp(item.subtotal)+'</td></tr>';
+        });
+        html += '<tr class="cp-total-row"><td colspan="6" style="text-align:right">小計</td><td>'+formatCurrencyCp(total)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('cpQuoteBody').innerHTML = html;
+      document.getElementById('cpQuoteOverlay').classList.add('show');
+    }
+    function closeCpQuoteDialog(){ document.getElementById('cpQuoteOverlay').classList.remove('show'); currentCpContractCode = null; }
+
+    function openCpGanttDialog(contractCode){
+      var c = getCpContract(contractCode); if(!c) return;
+      currentCpContractCode = contractCode;
+      var ganttItems = c.gantt_items || [];
+      var body = document.getElementById('cpGanttBody');
+      if(!ganttItems.length){ body.innerHTML = '<p style="color:#718096">尚無甘特圖資料</p>'; document.getElementById('cpGanttOverlay').classList.add('show'); return; }
+      var allDates = [];
+      ganttItems.forEach(function(item){
+        if(item.start_date) allDates.push(new Date(item.start_date));
+        if(item.end_date) allDates.push(new Date(item.end_date));
+      });
+      var minDate = new Date(Math.min.apply(null, allDates));
+      var maxDate = new Date(Math.max.apply(null, allDates));
+      minDate.setDate(minDate.getDate()-2); maxDate.setDate(maxDate.getDate()+2);
+      var totalDays = Math.ceil((maxDate - minDate)/(1000*60*60*24));
+      var dayWidth = 24;
+      var timelineWidth = totalDays * dayWidth;
+      var html = '<div class="cp-gantt-wrap"><div class="cp-gantt-header"><div class="cp-gantt-label">項目</div><div class="cp-gantt-timeline" style="width:'+timelineWidth+'px">';
+      for(var d = new Date(minDate); d <= maxDate; d.setDate(d.getDate()+1)){
+        var wd = ['日','一','二','三','四','五','六'][d.getDay()];
+        html += '<div style="width:'+dayWidth+'px;flex-shrink:0;text-align:center;font-size:10px">'+d.getDate()+'<br>'+wd+'</div>';
+      }
+      html += '</div></div>';
+      ganttItems.forEach(function(item){
+        if(!item.start_date){ html += '<div class="cp-gantt-item"><div class="cp-gantt-label">'+item.item_name+'</div><div class="cp-gantt-bar-wrap" style="width:'+timelineWidth+'px"><span style="font-size:11px;color:#718096">未設定日期</span></div></div>'; return; }
+        var start = new Date(item.start_date);
+        var end = item.end_date ? new Date(item.end_date) : new Date(start.getTime() + (item.duration||1)*86400000);
+        var startOffset = Math.ceil((start - minDate)/(1000*60*60*24));
+        var duration = Math.ceil((end - start)/(1000*60*60*24))+1;
+        var left = startOffset * dayWidth;
+        var width = Math.max(duration * dayWidth, 20);
+        html += '<div class="cp-gantt-item"><div class="cp-gantt-label">'+item.item_name+'</div><div class="cp-gantt-bar-wrap" style="width:'+timelineWidth+'px"><div class="cp-gantt-bar" style="left:'+left+'px;width:'+width+'px">'+item.start_date+' ~ '+end.toISOString().slice(0,10)+'</div></div></div>';
+      });
+      html += '</div>';
+      body.innerHTML = html;
+      document.getElementById('cpGanttOverlay').classList.add('show');
+    }
+    function closeCpGanttDialog(){ document.getElementById('cpGanttOverlay').classList.remove('show'); currentCpContractCode = null; }
+
+    function openCpPackageDialog(contractCode){
+      var c = getCpContract(contractCode); if(!c) return;
+      currentCpContractCode = contractCode;
+      if(!cpPackageConfig[contractCode]) cpPackageConfig[contractCode] = [];
+      renderCpPackageBody(c);
+      document.getElementById('cpPackageOverlay').classList.add('show');
+    }
+    function closeCpPackageDialog(){ document.getElementById('cpPackageOverlay').classList.remove('show'); currentCpContractCode = null; }
+    function renderCpPackageBody(c){
+      var body = document.getElementById('cpPackageBody');
+      var packages = cpPackageConfig[c.contract_code] || [];
+      var items = c.quote_items || [];
+      var byCat = {};
+      items.forEach(function(item){ if(!byCat[item.category]) byCat[item.category]=[]; byCat[item.category].push(item); });
+      var allocated = {};
+      packages.forEach(function(pkg){
+        (pkg.items||[]).forEach(function(it){ allocated[it.quote_item_id] = (allocated[it.quote_item_id]||0) + (it.quantity||0); });
+      });
+      var html = '<div style="margin-bottom:12px;padding:10px;background:#edf2f7;border-radius:8px"><strong>合約：</strong>'+c.contract_code+' - '+c.customer_name;
+      if(c.quote && (c.quote.estimated_start_date||c.quote.estimated_end_date)) html += ' &nbsp; <strong>預估施工期間：</strong>'+ (c.quote.estimated_start_date||'') +' ~ '+ (c.quote.estimated_end_date||'');
+      html += '</div>';
+      html += '<div class="section-title" style="margin-top:12px">已配置發包（當前新增之發包內容）</div>';
+      if(packages.length === 0) html += '<p style="color:#718096;margin:8px 0">尚無發包，請在下方報價單明細勾選項目並輸入分配數量後點擊「新增發包」</p>';
+      else {
+        packages.forEach(function(pkg, idx){
+          var totalAmt = 0;
+          var rows = (pkg.items||[]).map(function(it){
+            var qi = items.find(function(q){ return q.id === it.quote_item_id; });
+            if(!qi) return null;
+            var amt = (it.quantity||0)*qi.unit_price;
+            totalAmt += amt;
+            return { qi: qi, qty: it.quantity||0, amt: amt };
+          }).filter(Boolean);
+          html += '<div class="cp-package-item"><div class="cp-package-title">發包 '+(idx+1)+'</div><table class="cp-quote-table" style="font-size:12px"><thead><tr><th>項目名稱</th><th>分配數量</th><th>單位</th><th>單價</th><th>小計</th></tr></thead><tbody>';
+          rows.forEach(function(r){ html += '<tr><td>'+r.qi.item_name+'</td><td>'+r.qty+'</td><td>'+r.qi.unit+'</td><td>'+formatCurrencyCp(r.qi.unit_price)+'</td><td>'+formatCurrencyCp(r.amt)+'</td></tr>'; });
+          html += '<tr class="cp-total-row"><td colspan="4" style="text-align:right">小計</td><td>'+formatCurrencyCp(totalAmt)+'</td></tr></tbody></table><button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="removeCpPackage(\''+escAttr(c.contract_code)+'\','+idx+')">刪除此發包</button></div>';
+        });
+      }
+      html += '<div class="section-title" style="margin-top:16px">報價單明細（勾選並輸入分配數量後新增發包）</div>';
+      html += '<table class="cp-quote-table"><thead><tr><th>勾選</th><th>工程分類</th><th>項目名稱</th><th>總數量</th><th>已分配</th><th>剩餘</th><th>分配數量</th><th>單位</th><th>單價</th></tr></thead><tbody>';
+      Object.keys(byCat).forEach(function(cat){
+        html += '<tr class="cp-category-row"><td colspan="9">'+cat+'</td></tr>';
+        byCat[cat].forEach(function(item){
+          var allc = allocated[item.id]||0;
+          var rem = item.quantity - allc;
+          html += '<tr><td><input type="checkbox" class="cp-pkg-cb" data-item-id="'+item.id+'" data-remaining="'+rem+'" data-unit-price="'+item.unit_price+'" data-name="'+escHtml(item.item_name)+'"></td><td>'+item.category+'</td><td>'+item.item_name+'</td><td>'+item.quantity+'</td><td>'+allc+'</td><td>'+rem+'</td><td><input type="number" class="cp-pkg-qty" data-item-id="'+item.id+'" min="0" max="'+rem+'" value="0" style="width:60px;padding:4px" disabled></td><td>'+item.unit+'</td><td>'+formatCurrencyCp(item.unit_price)+'</td></tr>';
+        });
+      });
+      html += '</tbody></table><div style="margin-top:12px"><button type="button" class="btn btn-primary btn-sm" onclick="addCpPackageFromSelection()">新增發包</button></div>';
+      body.innerHTML = html;
+      body.querySelectorAll('.cp-pkg-cb').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var qtyEl = body.querySelector('.cp-pkg-qty[data-item-id="'+this.getAttribute('data-item-id')+'"]');
+          if(qtyEl){ qtyEl.disabled = !this.checked; if(this.checked) qtyEl.value = this.getAttribute('data-remaining'); else qtyEl.value = 0; }
+        });
+      });
+    }
+    function removeCpPackage(contractCode, index){
+      var arr = cpPackageConfig[contractCode];
+      if(!arr || !arr[index]) return;
+      arr.splice(index, 1);
+      var c = getCpContract(contractCode);
+      if(c) renderCpPackageBody(c);
+    }
+    function addCpPackageFromSelection(){
+      if(!currentCpContractCode) return;
+      var c = getCpContract(currentCpContractCode);
+      if(!c) return;
+      var body = document.getElementById('cpPackageBody');
+      var selected = [];
+      body.querySelectorAll('.cp-pkg-cb:checked').forEach(function(cb){
+        var row = cb.closest('tr');
+        var itemId = parseInt(cb.getAttribute('data-item-id'),10);
+        var qtyEl = row ? row.querySelector('.cp-pkg-qty') : null;
+        var qty = qtyEl ? (parseInt(qtyEl.value,10)||0) : 0;
+        if(qty > 0) selected.push({ quote_item_id: itemId, quantity: qty });
+      });
+      if(selected.length === 0){ alert('請至少勾選一項並輸入分配數量'); return; }
+      cpPackageConfig[currentCpContractCode].push({ items: selected });
+      renderCpPackageBody(c);
+    }
+    function saveCpPackageConfig(){
+      if(!currentCpContractCode) return;
+      closeCpPackageDialog();
+      doQuery('construction-package');
+    }
+
+    var currentCaMain = null;
+    function toggleCaExpand(main){
+      if(window._caExpandedMain === main){ window._caExpandedMain = null; }
+      else{ window._caExpandedMain = main; window._caActiveTab = 'sub'; }
+      doQuery('construction-accept');
+    }
+    function switchCaTab(btn){
+      var main = btn.getAttribute('data-main');
+      var tab = btn.getAttribute('data-tab');
+      window._caExpandedMain = main;
+      window._caActiveTab = tab;
+      doQuery('construction-accept');
+    }
+    var currentCaMain = null, currentCaMode = null, currentCaEditIndex = null;
+    function openCaEditDialog(main, mode, index){
+      currentCaMain = main;
+      currentCaMode = mode;
+      currentCaEditIndex = index;
+      var data = dataConstructionAccept[main];
+      if(!data) return;
+      var titleEl = document.getElementById('caEditDialogTitle');
+      var bodyEl = document.getElementById('caEditDialogBody');
+      var isNew = index === null;
+      if(mode === 'sub'){
+        titleEl.textContent = isNew ? '新增子項目 － '+main : '編輯子項目 － '+main;
+        var row = isNew ? {} : (data.sub || [])[index] || {};
+        bodyEl.innerHTML = '<div class="form-row"><label>啟用</label><label><input type="checkbox" id="ca-edit-active" '+(row.active !== false ? 'checked' : '')+'> 啟用</label></div>' +
+          '<div class="form-row"><label>內容</label><input type="text" id="ca-edit-name" value="'+escHtml(row.name||'')+'" placeholder="內容"></div>' +
+          '<div class="form-row"><label>預設單位</label><input type="text" id="ca-edit-unit" value="'+escHtml(row.unit||'')+'" placeholder="預設單位"></div>' +
+          '<div class="form-row"><label>建議單價</label><input type="text" id="ca-edit-price" value="'+escHtml(row.price||'')+'" placeholder="建議單價"></div>' +
+          '<div class="form-row"><label>備註</label><input type="text" id="ca-edit-note" value="'+escHtml(row.note||'')+'" placeholder="備註"></div>';
+      } else {
+        titleEl.textContent = isNew ? '新增驗收項目 － '+main : '編輯驗收項目 － '+main;
+        var row = isNew ? {} : (data.check || [])[index] || {};
+        bodyEl.innerHTML = '<div class="form-row"><label>啟用</label><label><input type="checkbox" id="ca-edit-active" '+(row.active !== false ? 'checked' : '')+'> 啟用</label></div>' +
+          '<div class="form-row"><label>檢驗項目</label><input type="text" id="ca-edit-item" value="'+escHtml(row.item||'')+'" placeholder="檢驗項目"></div>' +
+          '<div class="form-row"><label>檢驗標準</label><input type="text" id="ca-edit-standard" value="'+escHtml(row.standard||'')+'" placeholder="檢驗標準"></div>' +
+          '<div class="form-row"><label>備註</label><input type="text" id="ca-edit-note" value="'+escHtml(row.note||'')+'" placeholder="備註"></div>';
+      }
+      document.getElementById('caEditDialogOverlay').classList.add('show');
+    }
+    function closeCaEditDialog(){
+      document.getElementById('caEditDialogOverlay').classList.remove('show');
+      currentCaMain = null; currentCaMode = null; currentCaEditIndex = null;
+    }
+    function saveCaEdit(){
+      if(!currentCaMain || !currentCaMode) return;
+      var data = dataConstructionAccept[currentCaMain];
+      if(!data) return;
+      var isNew = currentCaEditIndex === null;
+      if(currentCaMode === 'sub'){
+        if(!data.sub) data.sub = [];
+        var obj = {
+          active: document.getElementById('ca-edit-active').checked,
+          name: (document.getElementById('ca-edit-name')&&document.getElementById('ca-edit-name').value) ? document.getElementById('ca-edit-name').value.trim() : '',
+          unit: (document.getElementById('ca-edit-unit')&&document.getElementById('ca-edit-unit').value) ? document.getElementById('ca-edit-unit').value.trim() : '',
+          price: (document.getElementById('ca-edit-price')&&document.getElementById('ca-edit-price').value) ? document.getElementById('ca-edit-price').value.trim() : '',
+          note: (document.getElementById('ca-edit-note')&&document.getElementById('ca-edit-note').value) ? document.getElementById('ca-edit-note').value.trim() : ''
+        };
+        if(isNew) data.sub.push(obj); else data.sub[currentCaEditIndex] = obj;
+      } else {
+        if(!data.check) data.check = [];
+        var obj = {
+          active: document.getElementById('ca-edit-active').checked,
+          item: (document.getElementById('ca-edit-item')&&document.getElementById('ca-edit-item').value) ? document.getElementById('ca-edit-item').value.trim() : '',
+          standard: (document.getElementById('ca-edit-standard')&&document.getElementById('ca-edit-standard').value) ? document.getElementById('ca-edit-standard').value.trim() : '',
+          note: (document.getElementById('ca-edit-note')&&document.getElementById('ca-edit-note').value) ? document.getElementById('ca-edit-note').value.trim() : ''
+        };
+        if(isNew) data.check.push(obj); else data.check[currentCaEditIndex] = obj;
+      }
+      alert('已儲存');
+      closeCaEditDialog();
+      doQuery('construction-accept');
+    }
+
+    function doQuery(pageId){
+      if(typeof renderPage[pageId] === 'function') renderPage[pageId]();
+    }
+    function showMarketingContent(projectId){
+      var proj = dataMarketingProject.find(function(p){ return p.id === projectId; });
+      if(!proj) return;
+      document.getElementById('mp-content-title').textContent = proj.name;
+      var contents = dataMarketingContent.filter(function(c){ return c.marketing_project_id === projectId; });
+      var formMap = {}; dataFormMaster.forEach(function(f){ formMap[f.id]=f.name; });
+      var tb = document.getElementById('tb-marketing-content');
+      tb.innerHTML = contents.map(function(c){
+        var formName = formMap[c.form_master_id] || c.form_master_id || '—';
+        return '<tr><td>'+c.title+'</td><td>'+formName+'</td><td>'+(c.production_date||'')+'</td><td>'+(c.published_at||'')+'</td></tr>';
+      }).join('');
+      document.getElementById('mp-content-panel').style.display = 'block';
+    }
+    function closeMarketingContentPanel(){
+      document.getElementById('mp-content-panel').style.display = 'none';
+    }
+    function openFormResponseReadonly(id){ openResponseDetail(id); }
+
+    function openResponseDetail(responseId){
+      var r = dataFormResponse.find(function(x){ return x.id === responseId; });
+      if(!r) return;
+      currentResponseDetailId = responseId;
+      document.getElementById('responseDetailFixed').innerHTML = '<p><strong>姓名</strong> '+r.name+'</p><p><strong>電話</strong> '+r.phone_num+'</p><p><strong>地址</strong> '+r.address+'</p><p><strong>送出時間</strong> '+r.submitted_at+'</p>';
+      var items = dataFormResponseItem.filter(function(i){ return i.form_response_id === responseId; });
+      var fieldMap = {}; dataFormField.forEach(function(f){ fieldMap[f.id] = f.label || f.field_key; });
+      document.getElementById('responseDetailItems').innerHTML = items.length ? '<h4>動態欄位</h4><ul>'+items.map(function(i){ return '<li>'+fieldMap[i.form_field_id]+': '+i.value_text+'</li>'; }).join('')+'</ul>' : '';
+      var logs = dataInteractionLog.filter(function(l){ return l.form_response_id === responseId; }).sort(function(a,b){ return (b.created_at||'').localeCompare(a.created_at||''); });
+      document.getElementById('responseDetailLog').innerHTML = logs.length ? logs.map(function(l){ return '<li>'+l.created_at+' '+l.note+'</li>'; }).join('') : '<li>尚無紀錄</li>';
+      document.getElementById('responseDetailLogInput').value = '';
+      var lead = r.lead_id ? dataLead.find(function(l){ return l.id === r.lead_id; }) : null;
+      var btnClaim = document.getElementById('btn-claim'); var btnAssign = document.getElementById('btn-assign'); var btnProject = document.getElementById('btn-project');
+      btnClaim.style.display = r.status === 'pending' ? 'inline-block' : 'none';
+      btnAssign.style.display = (lead && lead.status !== 'converted') ? 'inline-block' : 'none';
+      btnProject.style.display = (lead && lead.status !== 'converted' && lead.assigned_designer_id != null) ? 'inline-block' : 'none';
+      document.getElementById('responseDetailOverlay').classList.add('show');
+    }
+    function closeResponseDetail(){
+      currentResponseDetailId = null;
+      document.getElementById('responseDetailOverlay').classList.remove('show');
+    }
+
+    function openFormResponseViewDialog(responseId){
+      var r = dataFormResponse.find(function(x){ return x.id === responseId; });
+      if(!r) return;
+      var formName = (dataFormMaster.find(function(f){ return f.id === r.form_master_id; }) || {}).name || r.form_master_id;
+      var items = dataFormResponseItem.filter(function(i){ return i.form_response_id === responseId; });
+      var fieldMap = {}; dataFormField.forEach(function(f){ fieldMap[f.id] = f.label || f.field_key; });
+      var html = '<div class="section-title">固定欄位</div><p><strong>姓名</strong> '+r.name+'</p><p><strong>電話</strong> '+r.phone_num+'</p><p><strong>地址</strong> '+r.address+'</p><p><strong>表單</strong> '+formName+'</p><p><strong>送出時間</strong> '+r.submitted_at+'</p>';
+      if(items.length){ html += '<div class="section-title">動態欄位（form_response_item）</div><ul>'; items.forEach(function(i){ html += '<li><strong>'+fieldMap[i.form_field_id]+'</strong>: '+i.value_text+'</li>'; }); html += '</ul>'; }
+      document.getElementById('formResponseViewBody').innerHTML = html;
+      document.getElementById('formResponseViewOverlay').classList.add('show');
+    }
+    function closeFormResponseView(){ document.getElementById('formResponseViewOverlay').classList.remove('show'); }
+
+    function getFormFieldOptionsForForm(formMasterId){
+      if(!formMasterId) return '<option value="">請先選擇表單</option>';
+      var list = dataFormField.filter(function(f){ return f.form_master_id === parseInt(formMasterId,10); }).sort(function(a,b){ return (a.sequence||0) - (b.sequence||0); });
+      return list.length ? list.map(function(f){ return '<option value="'+f.id+'">'+(f.label||f.field_key)+'</option>'; }).join('') : '<option value="">此表單尚無欄位</option>';
+    }
+    function getOrCreateFormFieldForOnsite(label){
+      if(!label) return null;
+      var fm = 3;
+      var existing = dataFormField.find(function(f){ return f.form_master_id === fm && (f.label || '') === label; });
+      if(existing) return existing.id;
+      var maxId = dataFormField.length ? Math.max.apply(null, dataFormField.map(function(f){ return f.id; })) + 1 : 1;
+      var key = 'field_' + maxId;
+      dataFormField.push({ id: maxId, form_master_id: fm, field_key: key, label: label, field_type: 'text', sequence: maxId, required: 0, length: 0, placeholder: '', extra: '' });
+      return maxId;
+    }
+    function addNewFormResponseItemRow(){
+      var tb = document.getElementById('tb-new-fr-items');
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><input type="text" list="formNameDatalist" class="new-fr-field-name" placeholder="輸入或選擇欄位名稱"></td><td><input type="text" class="new-fr-value-input" placeholder="輸入值"></td><td class="btn-cell"><button type="button" class="btn-delete-row" onclick="this.closest(\'tr\').remove()" title="刪除">×</button></td>';
+      tb.appendChild(tr);
+    }
+    function openAddFormResponseDialog(){
+      var dl = document.getElementById('formNameDatalist');
+      if(dl){
+        var labels = dataFormField.filter(function(f){ return f.form_master_id === 3; }).sort(function(a,b){ return (a.sequence||0) - (b.sequence||0); }).map(function(f){ return f.label || f.field_key; }).filter(Boolean);
+        dl.innerHTML = labels.map(function(n){ return '<option value="'+escHtml(n)+'">'; }).join('');
+      }
+      document.getElementById('new-fr-name').value = '';
+      document.getElementById('new-fr-phone').value = '';
+      document.getElementById('new-fr-address').value = '';
+      document.getElementById('tb-new-fr-items').innerHTML = '';
+      addNewFormResponseItemRow();
+      document.getElementById('addFormResponseOverlay').classList.add('show');
+    }
+    function closeAddFormResponseDialog(){ document.getElementById('addFormResponseOverlay').classList.remove('show'); }
+    function saveNewFormResponse(){
+      var name = (document.getElementById('new-fr-name').value || '').trim();
+      var phone = (document.getElementById('new-fr-phone').value || '').trim();
+      var address = (document.getElementById('new-fr-address').value || '').trim();
+      if(!name || !phone || !address){ alert('請填寫姓名、電話、地址'); return; }
+      var newId = dataFormResponse.length ? Math.max.apply(null, dataFormResponse.map(function(x){ return x.id; })) + 1 : 1;
+      dataFormResponse.push({ id: newId, form_master_id: 3, name: name, phone_num: phone, address: address, status: 'pending', submitted_at: new Date().toISOString().slice(0,16).replace('T',' '), lead_id: null });
+      var rows = document.querySelectorAll('#tb-new-fr-items tr');
+      var maxItemId = dataFormResponseItem.length ? Math.max.apply(null, dataFormResponseItem.map(function(x){ return x.id; })) : 0;
+      for(var i = 0; i < rows.length; i++){
+        var nameInput = rows[i].querySelector('input.new-fr-field-name');
+        var valInput = rows[i].querySelector('input.new-fr-value-input');
+        if(!nameInput || !valInput) continue;
+        var label = (nameInput.value || '').trim();
+        var val = (valInput.value || '').trim();
+        if(!label) continue;
+        var fieldId = getOrCreateFormFieldForOnsite(label);
+        if(!fieldId) continue;
+        maxItemId++;
+        dataFormResponseItem.push({ id: maxItemId, form_response_id: newId, form_field_id: fieldId, value_text: val });
+      }
+      closeAddFormResponseDialog();
+      doQuery('customer-order');
+    }
+
+    function toggleActionMenu(ev, menuId){
+      ev.stopPropagation();
+      var menu = document.getElementById(menuId);
+      if(!menu) return;
+      var wasOpen = menu.classList.contains('show');
+      document.querySelectorAll('.co-action-menu').forEach(function(m){ m.classList.remove('show'); });
+      if(!wasOpen){
+        menu.classList.add('show');
+        var btn = ev.currentTarget;
+        var br = btn.getBoundingClientRect();
+        var menuW = 140;
+        var left = Math.max(8, Math.min(br.right - menuW, window.innerWidth - menuW - 8));
+        menu.style.left = left + 'px';
+        menu.style.top = (br.bottom + 4) + 'px';
+        requestAnimationFrame(function(){
+          var mr = menu.getBoundingClientRect();
+          if(mr.bottom > window.innerHeight - 60) menu.style.top = (br.top - mr.height - 4) + 'px';
+        });
+      }
+    }
+    function toggleCoActionMenu(ev, responseId){ toggleActionMenu(ev, 'co-menu-'+responseId); }
+    function closeCoMenu(){ document.querySelectorAll('.co-action-menu').forEach(function(m){ m.classList.remove('show'); }); }
+    document.addEventListener('click', function(){ closeCoMenu(); });
+
+    var currentNoteFormResponseId = null;
+    function openAddNoteDialog(responseId){
+      currentNoteFormResponseId = responseId;
+      document.getElementById('note-form-response-id').value = responseId;
+      document.getElementById('note-content').value = '';
+      document.getElementById('addNoteOverlay').classList.add('show');
+    }
+    function closeAddNoteDialog(){ currentNoteFormResponseId = null; document.getElementById('addNoteOverlay').classList.remove('show'); }
+    function submitNote(){
+      var responseId = currentNoteFormResponseId;
+      var content = (document.getElementById('note-content').value || '').trim();
+      if(!content){ alert('請輸入備註內容'); return; }
+      var newId = dataInteractionLog.length ? Math.max.apply(null, dataInteractionLog.map(function(l){ return l.id; })) + 1 : 1;
+      dataInteractionLog.push({ id: newId, form_response_id: responseId, user_id: currentUserId, note: content, created_at: new Date().toISOString().slice(0,16).replace('T',' ') });
+      closeAddNoteDialog();
+      doQuery('customer-order');
+    }
+
+    function claimLeadForResponse(responseId){
+      currentResponseDetailId = responseId;
+      claimLead();
+      doQuery('customer-order');
+    }
+
+    var currentFormMasterEditId = null;
+    var formFieldNewRowCount = 0;
+    function openFormMasterEditDialog(masterId){
+      var m = dataFormMaster.find(function(f){ return f.id === masterId; });
+      if(!m) return;
+      currentFormMasterEditId = masterId;
+      formFieldNewRowCount = 0;
+      document.getElementById('formMasterEditTitle').textContent = '編輯';
+      document.getElementById('fm-edit-master-id').value = masterId;
+      document.getElementById('fm-edit-id-ro').value = m.id;
+      document.getElementById('fm-edit-name').value = m.name || '';
+      document.getElementById('fm-edit-type').value = m.form_type || '預約表單';
+      renderFormFieldRowsInDialog(masterId);
+      document.getElementById('formMasterEditDialogOverlay').classList.add('show');
+    }
+    function closeFormMasterEditDialog(){
+      currentFormMasterEditId = null;
+      document.getElementById('formMasterEditDialogOverlay').classList.remove('show');
+      doQuery('marketing-form');
+    }
+    function escHtml(s){ if(s===undefined||s===null) return ''; return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function escAttr(s){ if(s===undefined||s===null) return ''; return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function renderFormFieldRowsInDialog(masterId){
+      var list = dataFormField.filter(function(f){ return f.form_master_id === masterId; }).sort(function(a,b){ return (a.sequence||0) - (b.sequence||0); });
+      var tb = document.getElementById('tb-form-field-in-dialog');
+      tb.innerHTML = list.map(function(f){
+        var typeSelect = FORM_FIELD_TYPES.map(function(o){ return '<option value="'+o.value+'"'+(f.field_type===o.value?' selected':'')+'>'+escHtml(o.text)+'</option>'; }).join('');
+        return '<tr data-field-id="'+f.id+'"><td><input type="text" value="'+escHtml(f.label)+'" placeholder="欄位名稱"></td><td><select>'+typeSelect+'</select></td><td><input type="number" value="'+(f.length!==undefined?f.length:0)+'" min="0" style="width:60px"></td><td><select><option value="0"'+(!f.required?' selected':'')+'>否</option><option value="1"'+(f.required?' selected':'')+'>是</option></select></td><td><input type="text" value="'+escHtml(f.extra||'')+'" placeholder="例：非常不滿意_非常滿意"></td><td><input type="text" value="'+escHtml(f.placeholder||'')+'" placeholder="欄位提示"></td><td class="btn-cell"><button type="button" class="btn-delete-row" onclick="deleteFormFieldRow(this)" title="刪除">×</button></td></tr>';
+      }).join('');
+    }
+    function addFormFieldRow(){
+      var masterId = currentFormMasterEditId;
+      if(!masterId) return;
+      formFieldNewRowCount++;
+      var typeSelect = FORM_FIELD_TYPES.map(function(o){ return '<option value="'+o.value+'">'+escHtml(o.text)+'</option>'; }).join('');
+      var tb = document.getElementById('tb-form-field-in-dialog');
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-field-id', 'new-'+formFieldNewRowCount);
+      tr.innerHTML = '<td><input type="text" placeholder="欄位名稱"></td><td><select>'+typeSelect+'</select></td><td><input type="number" value="0" min="0" style="width:60px"></td><td><select><option value="0" selected>否</option><option value="1">是</option></select></td><td><input type="text" placeholder="例：非常不滿意_非常滿意"></td><td><input type="text" placeholder="欄位提示"></td><td class="btn-cell"><button type="button" class="btn-delete-row" onclick="deleteFormFieldRow(this)" title="刪除">×</button></td>';
+      tb.appendChild(tr);
+    }
+    function deleteFormFieldRow(btn){ if(confirm('確定刪除此欄位？')) btn.closest('tr').remove(); }
+    function saveFormMasterEditFromDialog(){
+      var masterId = currentFormMasterEditId;
+      if(!masterId) return;
+      var m = dataFormMaster.find(function(f){ return f.id === masterId; });
+      if(!m) return;
+      var name = (document.getElementById('fm-edit-name').value || '').trim();
+      if(!name){ alert('請填寫表單名稱（必填）'); return; }
+      m.name = name;
+      m.form_type = document.getElementById('fm-edit-type').value;
+      var tb = document.getElementById('tb-form-field-in-dialog');
+      var rows = tb.querySelectorAll('tr');
+      var keptIds = [];
+      var maxId = dataFormField.length ? Math.max.apply(null, dataFormField.map(function(x){ return x.id; })) : 0;
+      for(var i = 0; i < rows.length; i++){
+        var tr = rows[i];
+        var fid = tr.getAttribute('data-field-id');
+        var inputs = tr.querySelectorAll('input, select');
+        var label = (inputs[0].value || '').trim();
+        if(!label) continue;
+        var fieldType = inputs[1].value;
+        var length = parseInt(inputs[2].value, 10) || 0;
+        var required = parseInt(inputs[3].value, 10) || 0;
+        var extra = (inputs[4].value || '').trim();
+        var placeholder = (inputs[5].value || '').trim();
+        var fieldKey = (label.replace(/\s/g,'_') || 'field_'+i).toLowerCase();
+        if(fid && fid.indexOf('new-') === 0){
+          maxId++;
+          dataFormField.push({ id: maxId, form_master_id: masterId, field_key: fieldKey, label: label, field_type: fieldType, sequence: i+1, required: required, length: length, extra: extra, placeholder: placeholder });
+          keptIds.push(maxId);
+        } else {
+          var id = parseInt(fid, 10);
+          var f = dataFormField.find(function(x){ return x.id === id; });
+          if(f){ f.label = label; f.field_type = fieldType; f.sequence = i+1; f.required = required; f.length = length; f.extra = extra; f.placeholder = placeholder; f.field_key = fieldKey; keptIds.push(id); }
+        }
+      }
+      dataFormField = dataFormField.filter(function(x){ return x.form_master_id !== masterId || keptIds.indexOf(x.id) >= 0; });
+      closeFormMasterEditDialog();
+    }
+
+    function addInteractionLog(){
+      var id = currentResponseDetailId; if(!id) return;
+      var input = document.getElementById('responseDetailLogInput'); var note = (input.value||'').trim(); if(!note) return;
+      var newId = dataInteractionLog.length ? Math.max.apply(null, dataInteractionLog.map(function(l){ return l.id; })) + 1 : 1;
+      dataInteractionLog.push({ id: newId, form_response_id: id, user_id: currentUserId, note: note, created_at: new Date().toISOString().slice(0,16).replace('T',' ') });
+      input.value = '';
+      openResponseDetail(id);
+    }
+    function claimLead(){
+      var responseId = currentResponseDetailId; if(!responseId) return;
+      var r = dataFormResponse.find(function(x){ return x.id === responseId; }); if(!r || r.status !== 'pending') return;
+      var newLeadId = dataLead.length ? Math.max.apply(null, dataLead.map(function(l){ return l.id; })) + 1 : 1;
+      var code = nextLeadCode();
+      dataLead.push({ id: newLeadId, form_response_id: r.id, readable_code: code, customer_name: r.name, phone: r.phone_num, address: r.address, owner_user_id: currentUserId, assigned_customer_service: currentUserId, assigned_designer_id: null, assigned_designer_name: null, status: 'new' });
+      r.lead_id = newLeadId; r.status = 'claimed';
+      openResponseDetail(responseId);
+      doQuery('customer-order');
+    }
+    var currentAssignLeadId = null;
+    function getDesignerStats(){
+      return DESIGNERS.map(function(name, i){
+        var id = i + 1;
+        var total = dataLead.filter(function(l){ return l.assigned_designer_id === id; }).length;
+        var contract = dataLead.filter(function(l){ return l.assigned_designer_id === id && l.status === 'converted'; }).length;
+        return { name: name, id: id, total: total, contract: contract };
+      });
+    }
+    function openAssignDesignerDialogForResponse(responseId){
+      currentResponseDetailId = responseId;
+      openAssignDesignerDialog();
+    }
+    function openAssignDesignerDialog(){
+      var responseId = currentResponseDetailId; if(!responseId) return;
+      var r = dataFormResponse.find(function(x){ return x.id === responseId; }); var lead = r && r.lead_id ? dataLead.find(function(l){ return l.id === r.lead_id; }) : null;
+      if(!lead) return;
+      currentAssignLeadId = lead.id;
+      document.getElementById('assign-lead-code').textContent = lead.readable_code;
+      var stats = getDesignerStats();
+      var tbody = document.getElementById('assignDesignerRows');
+      tbody.innerHTML = stats.map(function(d){
+        var rate = d.total ? ((d.contract / d.total) * 100).toFixed(1) : '0.0';
+        var rateClass = parseFloat(rate) >= 20 ? 'good' : '';
+        return '<tr><td>'+d.name+'</td><td>'+d.total+'</td><td>'+(d.total - d.contract)+'</td><td class="'+rateClass+'">'+d.contract+'</td><td class="'+rateClass+'">'+rate+'%</td><td class="btn-cell"><button type="button" class="btn btn-sm btn-primary" onclick="assignToDesigner('+d.id+')">指派</button></td></tr>';
+      }).join('');
+      document.getElementById('assignDesignerDialog').style.display = 'flex';
+    }
+    function closeAssignDesignerDialog(){ document.getElementById('assignDesignerDialog').style.display = 'none'; currentAssignLeadId = null; }
+    function assignToDesigner(designerId){
+      var leadId = currentAssignLeadId; if(!leadId) return;
+      var lead = dataLead.find(function(l){ return l.id === leadId; }); if(!lead) return;
+      var designerName = DESIGNERS[designerId - 1] || null;
+      lead.assigned_designer_id = designerId; lead.assigned_designer_name = designerName; lead.status = lead.status === 'new' ? 'assigned' : lead.status;
+      var r = dataFormResponse.find(function(x){ return x.lead_id === lead.id; });
+      var exist = dataProject.find(function(p){ return p.lead_id === lead.id; });
+      if(!exist){
+        var newProjectId = dataProject.length ? Math.max.apply(null, dataProject.map(function(p){ return p.id; })) + 1 : 1;
+        var code = nextProjectCode();
+        dataProject.push({ id: newProjectId, lead_id: lead.id, readable_code: code, status: 'contact', contract_template_id: null, sign_date: null, measure_date: null, measure_time: null, measurer_user: null, measurer_name: null, graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false });
+        lead.status = 'converted';
+        if(r) r.status = 'converted';
+      }
+      closeAssignDesignerDialog();
+      if(currentResponseDetailId) openResponseDetail(currentResponseDetailId);
+      doQuery('customer-order');
+    }
+    function createProjectFromLead(){
+      var responseId = currentResponseDetailId; if(!responseId) return;
+      var r = dataFormResponse.find(function(x){ return x.id === responseId; }); var lead = r && r.lead_id ? dataLead.find(function(l){ return l.id === r.lead_id; }) : null;
+      if(!lead || lead.status === 'converted') return;
+      if(!lead.assigned_designer_id) { alert('請先派設計師'); return; }
+      var exist = dataProject.find(function(p){ return p.lead_id === lead.id; }); if(exist) { alert('此 Lead 已立案'); return; }
+      var newProjectId = dataProject.length ? Math.max.apply(null, dataProject.map(function(p){ return p.id; })) + 1 : 1;
+      var code = nextProjectCode();
+      dataProject.push({ id: newProjectId, lead_id: lead.id, readable_code: code, status: 'contact', contract_template_id: null, sign_date: null, measure_date: null, measure_time: null, measurer_user: null, measurer_name: null, graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false });
+      lead.status = 'converted'; r.status = 'converted';
+      closeResponseDetail();
+      doQuery('customer-order');
+    }
+
+    var currentDesignerProjectId = null;
+    function openDesignerProjectDetail(projectId){
+      var p = dataProject.find(function(x){ return x.id === projectId; });
+      if(!p) return;
+      currentDesignerProjectId = projectId;
+      document.getElementById('designerProjectDetailTitle').textContent = '案件詳情 ' + (p.readable_code || '');
+      renderDesignerProjectDetailBody(projectId);
+      document.getElementById('designerProjectDetailOverlay').classList.add('show');
+    }
+    function closeDesignerProjectDetail(){
+      currentDesignerProjectId = null;
+      document.getElementById('designerProjectDetailOverlay').classList.remove('show');
+      doQuery('designer-case');
+    }
+    function getLeadByProject(projectId){
+      var p = dataProject.find(function(x){ return x.id === projectId; });
+      return p ? dataLead.find(function(l){ return l.id === p.lead_id; }) : null;
+    }
+    function getTemplateName(templateId){
+      if(!templateId) return '尚未選擇';
+      var t = dataContractTemplate.find(function(x){ return x.id === templateId; });
+      return t ? t.name : '—';
+    }
+    function renderDesignerProjectDetailBody(projectId){
+      var p = dataProject.find(function(x){ return x.id === projectId; });
+      if(!p) return;
+      var lead = getLeadByProject(projectId);
+      var customerName = lead ? lead.customer_name : '—';
+      var customerPhone = lead ? lead.phone : '—';
+      var customerAddr = lead ? lead.address : '—';
+      var status = p.status || 'contact';
+      var html = '<div class="section-title">客戶基本資料（唯讀）</div><div class="form-row"><label>姓名</label><input type="text" value="'+customerName+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>電話</label><input type="text" value="'+customerPhone+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>地址</label><input type="text" value="'+customerAddr+'" readonly style="background:#f7fafc"></div>';
+      if(status === 'contact'){
+        html += '<div class="section-title">設計師紀錄（聯絡關懷中）</div><div class="form-row"><label>聯絡關懷備註</label><textarea id="dc-note" rows="3" placeholder="可編輯">'+(p.note||'')+'</textarea></div><button type="button" class="btn btn-primary btn-sm" onclick="saveDesignerNote()">儲存備註</button>';
+        html += '<div class="section-title">合約模板</div><div class="form-row"><label>目前</label><select id="dc-contract-template"><option value="">尚未選擇</option>'+dataContractTemplate.map(function(t){ return '<option value="'+t.id+'"'+(p.contract_template_id===t.id?' selected':'')+'>'+t.name+'</option>'; }).join('')+'</select></div><button type="button" class="btn btn-secondary btn-sm" onclick="saveDesignerContractTemplate()">選擇/編輯合約模板</button>';
+        html += '<div class="section-title">丈量安排區</div><div class="form-row"><label>丈量日期</label><input type="date" id="dc-measure-date" value="'+(p.measure_date||'')+'"></div><div class="form-row"><label>丈量時間</label><input type="text" id="dc-measure-time" placeholder="例：09:00-11:00" value="'+(p.measure_time||'')+'"></div><div class="form-row"><label>丈量人員</label><select id="dc-measurer">'+STAFF_MEASURE.map(function(s,i){ return '<option value="'+(i+1)+'"'+(p.measurer_name===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-secondary" onclick="alert(\'開啟工務行事曆（此為 Demo，實際串 LINE WORKS）\')">開啟工務行事曆</button><button type="button" class="btn btn-primary" onclick="confirmMeasureDate()">確定丈量日（推進→待丈量）</button></div>';
+      }
+      if(status === 'measure'){
+        html += '<div class="section-title">聯絡關懷中資料（繼承，唯讀）</div><div class="form-row"><label>聯絡備註</label><textarea rows="2" readonly style="background:#f7fafc">'+(p.note||'')+'</textarea></div><div class="form-row"><label>合約模板</label><input type="text" value="'+getTemplateName(p.contract_template_id)+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">前置任務進度</div><div class="form-row"><label>丈量任務</label><input type="text" value="'+(p.task_measure_done?'✅ 已完成'+(p.measure_done_at?' '+p.measure_done_at:''):'⏳ 未完成')+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">丈量/繪圖/報價安排</div><div class="form-row"><label>丈量日期</label><input type="date" id="dc-measure-date" value="'+(p.measure_date||'')+'"></div><div class="form-row"><label>丈量人員</label><select id="dc-measurer">'+STAFF_MEASURE.map(function(s,i){ return '<option value="'+(i+1)+'"'+(p.measurer_name===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div><div class="form-row"><label>繪圖人員</label><select id="dc-graph-user">'+STAFF_GRAPH.map(function(s,i){ return '<option value="'+(i+1)+'"'+(p.graph_user_name===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div><div class="form-row"><label>報價人員</label><select id="dc-account-user">'+STAFF_ACCOUNT.map(function(s,i){ return '<option value="'+(i+1)+'"'+(p.account_user_name===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-primary" onclick="saveDesignerMeasureAssign()">更新丈量/指派繪圖報價</button><button type="button" class="btn btn-primary" onclick="confirmMeasureDone()">確認丈量完成（→待簽約）</button><button type="button" class="btn btn-secondary" onclick="alert(\'上傳丈量圖面\')">上傳丈量圖面</button><button type="button" class="btn btn-secondary" onclick="alert(\'開啟行事曆\')">開啟行事曆</button></div>';
+      }
+      if(status === 'signing'){
+        html += '<div class="section-title">前置任務進度</div><div class="form-row"><label>繪圖任務</label><input type="text" value="'+(p.task_drawing_done?'✅ 已完成':'⏳ 進行中')+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>報價任務</label><input type="text" value="'+(p.task_drawing_done?'✅ 已完成':'⏳ 進行中')+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">合約模板（唯讀）</div><div class="form-row"><label>模板</label><input type="text" value="'+getTemplateName(p.contract_template_id)+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">簽約資訊</div><div class="form-row"><label>簽約日期</label><input type="date" id="dc-sign-date" value="'+(p.sign_date||'')+'"></div><div class="form-row"><label>外部群組</label><input type="text" value="'+(p.external_group?'已建立':'未建立')+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>圖片數量</label><input type="text" value="'+(p.images_count||0)+' 張" readonly style="background:#f7fafc"></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-secondary" onclick="saveDesignerSignDate()">儲存簽約日期</button><button type="button" class="btn btn-secondary" onclick="alert(\'建立外部群組 LINE WORKS\')">建立外部群組</button><button type="button" class="btn btn-secondary" onclick="alert(\'預覽合約：'+getTemplateName(p.contract_template_id)+'\')">預覽合約</button><button type="button" class="btn btn-primary" onclick="confirmSign()">馬上簽約（→待選材）</button><button type="button" class="btn btn-secondary" onclick="alert(\'施工管理 Modal\')">施工管理</button></div>';
+      }
+      if(status === 'material'){
+        html += '<div class="section-title">簽約資訊（繼承）</div><div class="form-row"><label>簽約日期</label><input type="text" value="'+(p.sign_date||'—')+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>合約模板</label><input type="text" value="'+getTemplateName(p.contract_template_id)+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">選材資訊</div><div class="form-row"><label>選材日期</label><input type="date" id="dc-material-date" value="'+(p.material_date||'')+'"></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-secondary" onclick="saveDesignerMaterialDate()">儲存選材日期</button><button type="button" class="btn btn-secondary" onclick="alert(\'展開選材表\')">展開選材表</button><button type="button" class="btn btn-primary" onclick="completeMaterial()">完成選材（→發包中）</button><button type="button" class="btn btn-secondary" onclick="alert(\'查看合約/圖片\')">查看合約／圖片</button></div>';
+      }
+      if(status === 'outsourcing'){
+        html += '<div class="section-title">選材資訊（繼承，唯讀）</div><div class="form-row"><label>選材日期</label><input type="text" value="'+(p.material_date||'—')+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="section-title">發包資訊</div><div class="form-row"><label>承包方</label><input type="text" id="dc-outsourcing-contractor" value="'+(p.outsourcing_contractor||'')+'" placeholder="承包方"></div><div class="form-row"><label>發包指派日</label><input type="date" id="dc-outsourcing-assigned" value="'+(p.outsourcing_assigned_at||'')+'"></div><div class="form-row"><label>報價送出日</label><input type="date" id="dc-outsourcing-quote" value="'+(p.outsourcing_quote_sent_at||'')+'"></div><div class="form-row"><label>預估開工日</label><input type="date" id="dc-outsourcing-start" value="'+(p.outsourcing_expected_start||'')+'"></div><div class="form-row"><label>備註</label><input type="text" id="dc-outsourcing-note" value="'+(p.outsourcing_note||'')+'"></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-primary" onclick="saveDesignerOutsourcing()">儲存發包資訊</button><button type="button" class="btn btn-secondary" onclick="alert(\'施工管理：報價/甘特/驗收\')">進入施工管理</button><button type="button" class="btn btn-primary" onclick="confirmConstruction()">確認開工（→施作中）</button></div>';
+      }
+      if(status === 'construction' || status === 'closed'){
+        html += '<div class="section-title">發包資訊（繼承）</div><div class="form-row"><label>承包方</label><input type="text" value="'+(p.outsourcing_contractor||'—')+'" readonly style="background:#f7fafc"></div><div class="form-row"><label>預估開工日</label><input type="text" value="'+(p.outsourcing_expected_start||'—')+'" readonly style="background:#f7fafc"></div>';
+        html += '<div class="actions" style="margin-top:12px"><button type="button" class="btn btn-secondary" onclick="alert(\'施工管理\')">施工管理</button></div>';
+      }
+      document.getElementById('designerProjectDetailBody').innerHTML = html;
+    }
+    function saveDesignerNote(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; p.note = document.getElementById('dc-note').value; alert('已儲存'); }
+    function saveDesignerContractTemplate(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; var el = document.getElementById('dc-contract-template'); if(el) p.contract_template_id = el.value ? parseInt(el.value,10) : null; alert('已儲存合約模板'); }
+    function confirmMeasureDate(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p || p.status !== 'contact') return; var d = document.getElementById('dc-measure-date'); var t = document.getElementById('dc-measure-time'); var m = document.getElementById('dc-measurer'); if(d) p.measure_date = d.value; if(t) p.measure_time = t.value; if(m){ var i = parseInt(m.value,10); p.measurer_user = i; p.measurer_name = STAFF_MEASURE[i-1] || null; } p.status = 'measure'; closeDesignerProjectDetail(); }
+    function saveDesignerMeasureAssign(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; var d = document.getElementById('dc-measure-date'); var g = document.getElementById('dc-graph-user'); var a = document.getElementById('dc-account-user'); if(d) p.measure_date = d.value; if(g){ var i = parseInt(g.value,10); p.graph_user = i; p.graph_user_name = STAFF_GRAPH[i-1] || null; } if(a){ var j = parseInt(a.value,10); p.account_user = j; p.account_user_name = STAFF_ACCOUNT[j-1] || null; } alert('已更新'); }
+    function confirmMeasureDone(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p || p.status !== 'measure') return; p.task_measure_done = true; p.measure_done_at = new Date().toISOString().slice(0,10); p.task_drawing_done = true; p.status = 'signing'; closeDesignerProjectDetail(); }
+    function saveDesignerSignDate(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; var el = document.getElementById('dc-sign-date'); if(el) p.sign_date = el.value; alert('已儲存簽約日期'); }
+    function confirmSign(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p || p.status !== 'signing') return; p.status = 'material'; closeDesignerProjectDetail(); }
+    function saveDesignerMaterialDate(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; var el = document.getElementById('dc-material-date'); if(el) p.material_date = el.value; alert('已儲存選材日期'); }
+    function completeMaterial(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p || p.status !== 'material') return; p.status = 'outsourcing'; closeDesignerProjectDetail(); }
+    function saveDesignerOutsourcing(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p) return; var c = document.getElementById('dc-outsourcing-contractor'); var a = document.getElementById('dc-outsourcing-assigned'); var q = document.getElementById('dc-outsourcing-quote'); var s = document.getElementById('dc-outsourcing-start'); var n = document.getElementById('dc-outsourcing-note'); if(c) p.outsourcing_contractor = c.value; if(a) p.outsourcing_assigned_at = a.value; if(q) p.outsourcing_quote_sent_at = q.value; if(s) p.outsourcing_expected_start = s.value; if(n) p.outsourcing_note = n.value; alert('已儲存發包資訊'); }
+    function confirmConstruction(){ var p = dataProject.find(function(x){ return x.id === currentDesignerProjectId; }); if(!p || p.status !== 'outsourcing') return; p.status = 'construction'; closeDesignerProjectDetail(); }
+
+    function showPage(pageId){
+      document.querySelectorAll('.page-content').forEach(function(p){ p.classList.remove('active'); });
+      document.querySelectorAll('.nav-sub a').forEach(function(a){ a.classList.remove('current'); });
+      const page = document.getElementById('page-'+pageId);
+      const link = document.querySelector('.nav-sub a[data-page="'+pageId+'"]');
+      if(page) page.classList.add('active');
+      if(link) link.classList.add('current');
+      doQuery(pageId);
+    }
+    document.querySelectorAll('.nav-sub a').forEach(function(a){
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        showPage(this.getAttribute('data-page'));
+      });
+    });
+    document.querySelectorAll('#page-marketing-form .tabs .tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        document.querySelectorAll('#page-marketing-form .tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelectorAll('#page-marketing-form .tab-panel').forEach(function(p){ p.style.display = 'none'; });
+        this.classList.add('active');
+        var panel = document.getElementById('panel-'+this.getAttribute('data-tab'));
+        if(panel) panel.style.display = 'block';
+        doQuery('marketing-form');
+      });
+    });
+
+    var BRANCHES_OPTIONS = [{ value: '', text: '總公司（統一投放）' }, { value: '北區', text: '北區' }, { value: '桃園', text: '桃園' }, { value: '台中', text: '台中' }, { value: '彰化', text: '彰化' }];
+    var currentUserId = 1;
+    var DESIGNERS = ['阿契', '聖傑', '名好', '宏達', '博文'];
+
+    var ONSITE_FORM_MASTER_ID = 3;
+    var dataFormMaster = [
+      { id: 1, name: '官網預約表單', code: 'FORM-WEB-01', version: '1.0', valid: 1, form_type: '預約表單' },
+      { id: 2, name: 'LINE 導流表單', code: 'FORM-LINE-01', version: '1.0', valid: 1, form_type: '導流表單' },
+      { id: 3, name: '現場諮詢', code: 'FORM-ONSITE', version: '1.0', valid: 1, form_type: '現場諮詢' }
+    ];
+    var FORM_NAME_OPTIONS = ['裝修預算', '需求說明', '屋況', '預算', '備註', '其他'];
+    var dataFormField = [
+      { id: 1, form_master_id: 1, field_key: 'budget', label: '裝修預算', field_type: 'text', sequence: 1, required: 0, length: 10, placeholder: '欄位提示', extra: '' },
+      { id: 2, form_master_id: 1, field_key: 'note', label: '需求說明', field_type: 'textarea', sequence: 2, required: 1, length: 0, placeholder: '', extra: '' },
+      { id: 3, form_master_id: 3, field_key: 'budget', label: '裝修預算', field_type: 'text', sequence: 1, required: 0, length: 0, placeholder: '', extra: '' },
+      { id: 4, form_master_id: 3, field_key: 'note', label: '需求說明', field_type: 'text', sequence: 2, required: 0, length: 0, placeholder: '', extra: '' }
+    ];
+    var FORM_FIELD_TYPES = [{ value: 'text', text: '輸入框' }, { value: 'select', text: '下拉選單' }, { value: 'scale', text: '線性刻度' }, { value: 'textarea', text: '多行文字' }, { value: 'number', text: '數字' }, { value: 'date', text: '日期' }];
+    var dataFormResponse = [
+      { id: 1, form_master_id: 1, name: '吳小姐', phone_num: '0912-345-678', address: '台北市大安區復興南路', status: 'pending', submitted_at: '2026-02-20 10:00', lead_id: null },
+      { id: 2, form_master_id: 3, name: '林先生', phone_num: '0922-111-222', address: '新北市板橋區文化路', status: 'pending', submitted_at: '2026-02-21 11:00', lead_id: null },
+      { id: 3, form_master_id: 1, name: '陳太太', phone_num: '0933-444-555', address: '高雄市前鎮區中山路', status: 'pending', submitted_at: '2026-02-22 09:30', lead_id: null },
+      { id: 4, form_master_id: 1, name: '王先生', phone_num: '0988-888-888', address: '桃園市龜山區', status: 'claimed', submitted_at: '2026-02-23 09:00', lead_id: 1 },
+      { id: 5, form_master_id: 3, name: '李小姐', phone_num: '0955-666-777', address: '新竹市東區光復路', status: 'claimed', submitted_at: '2026-02-22 14:00', lead_id: 2 },
+      { id: 6, form_master_id: 1, name: '黃先生', phone_num: '0966-999-000', address: '台南市東區大學路', status: 'claimed', submitted_at: '2026-02-21 16:00', lead_id: 3 },
+      { id: 7, form_master_id: 1, name: '張小姐', phone_num: '0977-333-444', address: '台中市西屯區文心路', status: 'converted', submitted_at: '2026-02-23 09:15', lead_id: 4 },
+      { id: 8, form_master_id: 3, name: '劉先生', phone_num: '0911-222-333', address: '台北市內湖區成功路', status: 'converted', submitted_at: '2026-02-20 13:00', lead_id: 5 },
+      { id: 9, form_master_id: 1, name: '周小姐', phone_num: '0923-555-666', address: '桃園市蘆竹區南崁路', status: 'converted', submitted_at: '2026-02-19 10:30', lead_id: 6 },
+      { id: 10, form_master_id: 3, name: '鄭先生', phone_num: '0934-777-888', address: '新北市中和區景平路', status: 'converted', submitted_at: '2026-02-18 11:00', lead_id: 7 },
+      { id: 11, form_master_id: 1, name: '孫小姐', phone_num: '0945-888-999', address: '台中市北區三民路', status: 'converted', submitted_at: '2026-02-17 15:00', lead_id: 8 },
+      { id: 12, form_master_id: 3, name: '何先生', phone_num: '0956-111-222', address: '高雄市鼓山區明誠路', status: 'converted', submitted_at: '2026-02-16 09:00', lead_id: 9 },
+      { id: 13, form_master_id: 1, name: '高小姐', phone_num: '0967-333-444', address: '台北市信義區松仁路', status: 'converted', submitted_at: '2026-02-15 14:30', lead_id: 10 },
+      { id: 14, form_master_id: 3, name: '許先生', phone_num: '0978-555-666', address: '新北市新店區北新路', status: 'converted', submitted_at: '2026-02-14 10:00', lead_id: 11 },
+      { id: 15, form_master_id: 1, name: '謝小姐', phone_num: '0989-777-888', address: '台中市南屯區公益路', status: 'converted', submitted_at: '2026-02-13 16:00', lead_id: 12 },
+      { id: 16, form_master_id: 3, name: '郭先生', phone_num: '0991-999-000', address: '台南市安平區永華路', status: 'converted', submitted_at: '2026-02-12 11:30', lead_id: 13 },
+      { id: 17, form_master_id: 1, name: '馬小姐', phone_num: '0902-111-333', address: '桃園市桃園區復興路', status: 'converted', submitted_at: '2026-02-11 09:00', lead_id: 14 },
+      { id: 18, form_master_id: 3, name: '羅先生', phone_num: '0913-444-555', address: '新竹縣竹北市光明路', status: 'converted', submitted_at: '2026-02-10 13:00', lead_id: 15 },
+      { id: 19, form_master_id: 1, name: '梁小姐', phone_num: '0924-666-777', address: '高雄市左營區博愛路', status: 'converted', submitted_at: '2026-02-09 15:30', lead_id: 16 },
+      { id: 20, form_master_id: 3, name: '宋先生', phone_num: '0935-888-999', address: '台北市中山區南京東路', status: 'converted', submitted_at: '2026-02-08 10:00', lead_id: 17 },
+      { id: 21, form_master_id: 1, name: '唐小姐', phone_num: '0946-222-333', address: '新北市土城區中央路', status: 'converted', submitted_at: '2026-02-07 14:00', lead_id: 18 },
+      { id: 22, form_master_id: 3, name: '韓先生', phone_num: '0957-444-555', address: '台中市西區公益路', status: 'closed', submitted_at: '2026-01-25 10:00', lead_id: 19 },
+      { id: 23, form_master_id: 1, name: '馮小姐', phone_num: '0968-666-777', address: '台南市北區公園路', status: 'closed', submitted_at: '2026-01-20 11:30', lead_id: 20 },
+      { id: 24, form_master_id: 3, name: '鄧先生', phone_num: '0979-888-999', address: '高雄市三民區建工路', status: 'closed', submitted_at: '2026-01-15 09:00', lead_id: 21 }
+    ];
+    var dataFormResponseItem = [
+      { id: 1, form_response_id: 1, form_field_id: 1, value_text: '100萬' },
+      { id: 2, form_response_id: 1, form_field_id: 2, value_text: '三房兩廳' },
+      { id: 3, form_response_id: 2, form_field_id: 1, value_text: '未提供' },
+      { id: 4, form_response_id: 3, form_field_id: 1, value_text: '150萬' },
+      { id: 5, form_response_id: 4, form_field_id: 1, value_text: '80萬' },
+      { id: 6, form_response_id: 5, form_field_id: 2, value_text: '新成屋' },
+      { id: 7, form_response_id: 6, form_field_id: 1, value_text: '200萬' }
+    ];
+    var dataLead = [
+      { id: 1, form_response_id: 4, readable_code: 'C2026020001', customer_name: '王先生', phone: '0988-888-888', address: '桃園市龜山區', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: null, assigned_designer_name: null, status: 'contacted' },
+      { id: 2, form_response_id: 5, readable_code: 'C2026020002', customer_name: '李小姐', phone: '0955-666-777', address: '新竹市東區光復路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'assigned' },
+      { id: 3, form_response_id: 6, readable_code: 'C2026020003', customer_name: '黃先生', phone: '0966-999-000', address: '台南市東區大學路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'assigned' },
+      { id: 4, form_response_id: 7, readable_code: 'C2026020004', customer_name: '張小姐', phone: '0977-333-444', address: '台中市西屯區文心路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 5, form_response_id: 8, readable_code: 'C2026020005', customer_name: '劉先生', phone: '0911-222-333', address: '台北市內湖區成功路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 6, form_response_id: 9, readable_code: 'C2026020006', customer_name: '周小姐', phone: '0923-555-666', address: '桃園市蘆竹區南崁路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' },
+      { id: 7, form_response_id: 10, readable_code: 'C2026020007', customer_name: '鄭先生', phone: '0934-777-888', address: '新北市中和區景平路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 8, form_response_id: 11, readable_code: 'C2026020008', customer_name: '孫小姐', phone: '0945-888-999', address: '台中市北區三民路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 9, form_response_id: 12, readable_code: 'C2026020009', customer_name: '何先生', phone: '0956-111-222', address: '高雄市鼓山區明誠路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' },
+      { id: 10, form_response_id: 13, readable_code: 'C2026020010', customer_name: '高小姐', phone: '0967-333-444', address: '台北市信義區松仁路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 11, form_response_id: 14, readable_code: 'C2026020011', customer_name: '許先生', phone: '0978-555-666', address: '新北市新店區北新路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 12, form_response_id: 15, readable_code: 'C2026020012', customer_name: '謝小姐', phone: '0989-777-888', address: '台中市南屯區公益路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' },
+      { id: 13, form_response_id: 16, readable_code: 'C2026020013', customer_name: '郭先生', phone: '0991-999-000', address: '台南市安平區永華路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 14, form_response_id: 17, readable_code: 'C2026020014', customer_name: '馬小姐', phone: '0902-111-333', address: '桃園市桃園區復興路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 15, form_response_id: 18, readable_code: 'C2026020015', customer_name: '羅先生', phone: '0913-444-555', address: '新竹縣竹北市光明路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' },
+      { id: 16, form_response_id: 19, readable_code: 'C2026020016', customer_name: '梁小姐', phone: '0924-666-777', address: '高雄市左營區博愛路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 17, form_response_id: 20, readable_code: 'C2026020017', customer_name: '宋先生', phone: '0935-888-999', address: '台北市中山區南京東路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 18, form_response_id: 21, readable_code: 'C2026020018', customer_name: '唐小姐', phone: '0946-222-333', address: '新北市土城區中央路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' },
+      { id: 19, form_response_id: 22, readable_code: 'C2026020019', customer_name: '韓先生', phone: '0957-444-555', address: '台中市西區公益路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 1, assigned_designer_name: '阿契', status: 'converted' },
+      { id: 20, form_response_id: 23, readable_code: 'C2026020020', customer_name: '馮小姐', phone: '0968-666-777', address: '台南市北區公園路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 2, assigned_designer_name: '聖傑', status: 'converted' },
+      { id: 21, form_response_id: 24, readable_code: 'C2026020021', customer_name: '鄧先生', phone: '0979-888-999', address: '高雄市三民區建工路', owner_user_id: 1, assigned_customer_service: 1, assigned_designer_id: 3, assigned_designer_name: '名好', status: 'converted' }
+    ];
+    var dataProject = [
+      { id: 1, lead_id: 4, readable_code: 'P2026020001', status: 'contact', contract_template_id: null, sign_date: null, measure_date: null, measure_time: null, measurer_user: null, measurer_name: null, graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '已加 LINE，晚間回電', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 2, lead_id: 5, readable_code: 'P2026020002', status: 'contact', contract_template_id: null, sign_date: null, measure_date: null, measure_time: null, measurer_user: null, measurer_name: null, graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 3, lead_id: 6, readable_code: 'P2026020003', status: 'contact', contract_template_id: null, sign_date: null, measure_date: null, measure_time: null, measurer_user: null, measurer_name: null, graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '客戶偏好週末', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 4, lead_id: 7, readable_code: 'P2026020004', status: 'measure', contract_template_id: null, sign_date: null, measure_date: '2026-02-28', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 5, lead_id: 8, readable_code: 'P2026020005', status: 'measure', contract_template_id: null, sign_date: null, measure_date: '2026-03-01', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 6, lead_id: 9, readable_code: 'P2026020006', status: 'measure', contract_template_id: null, sign_date: null, measure_date: '2026-03-02', measure_time: '09:30', measurer_user: 1, measurer_name: '阿國', graph_user: null, graph_user_name: null, account_user: null, account_user_name: null, note: '', measure_done_at: null, material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: false, task_drawing_done: false },
+      { id: 7, lead_id: 10, readable_code: 'P2026020007', status: 'signing', contract_template_id: 1, sign_date: '2026-03-05', measure_date: '2026-02-25', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-26', material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 8, lead_id: 11, readable_code: 'P2026020008', status: 'signing', contract_template_id: 2, sign_date: null, measure_date: '2026-02-26', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: 2, graph_user_name: '小蔡', account_user: 2, account_user_name: '小王', note: '', measure_done_at: '2026-02-27', material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 9, lead_id: 12, readable_code: 'P2026020009', status: 'signing', contract_template_id: 1, sign_date: null, measure_date: '2026-02-24', measure_time: '09:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-25', material_date: null, outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 10, lead_id: 13, readable_code: 'P2026020010', status: 'material', contract_template_id: 1, sign_date: '2026-03-01', measure_date: '2026-02-20', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-21', material_date: '2026-03-10', outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 11, lead_id: 14, readable_code: 'P2026020011', status: 'material', contract_template_id: 2, sign_date: '2026-03-02', measure_date: '2026-02-22', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: 2, graph_user_name: '小蔡', account_user: 2, account_user_name: '小王', note: '', measure_done_at: '2026-02-23', material_date: '2026-03-12', outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 12, lead_id: 15, readable_code: 'P2026020012', status: 'material', contract_template_id: 1, sign_date: '2026-02-28', measure_date: '2026-02-18', measure_time: '09:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-19', material_date: '2026-03-15', outsourcing_contractor: null, outsourcing_assigned_at: null, outsourcing_quote_sent_at: null, outsourcing_expected_start: null, outsourcing_note: null, external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 13, lead_id: 16, readable_code: 'P2026020013', status: 'outsourcing', contract_template_id: 1, sign_date: '2026-02-25', measure_date: '2026-02-15', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-16', material_date: '2026-03-05', outsourcing_contractor: '甲工程行', outsourcing_assigned_at: '2026-03-08', outsourcing_quote_sent_at: '2026-03-06', outsourcing_expected_start: '2026-03-20', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 14, lead_id: 17, readable_code: 'P2026020014', status: 'outsourcing', contract_template_id: 2, sign_date: '2026-02-26', measure_date: '2026-02-16', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: 2, graph_user_name: '小蔡', account_user: 2, account_user_name: '小王', note: '', measure_done_at: '2026-02-17', material_date: '2026-03-06', outsourcing_contractor: '乙營造', outsourcing_assigned_at: '2026-03-09', outsourcing_quote_sent_at: '2026-03-07', outsourcing_expected_start: '2026-03-22', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 15, lead_id: 18, readable_code: 'P2026020015', status: 'outsourcing', contract_template_id: 1, sign_date: '2026-02-24', measure_date: '2026-02-14', measure_time: '09:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-15', material_date: '2026-03-08', outsourcing_contractor: '丙水電', outsourcing_assigned_at: '2026-03-10', outsourcing_quote_sent_at: '2026-03-08', outsourcing_expected_start: '2026-03-25', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 16, lead_id: 19, readable_code: 'P2026020016', status: 'construction', contract_template_id: 1, sign_date: '2026-02-20', measure_date: '2026-02-10', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-11', material_date: '2026-02-28', outsourcing_contractor: '甲工程行', outsourcing_assigned_at: '2026-03-01', outsourcing_quote_sent_at: '2026-02-28', outsourcing_expected_start: '2026-03-15', outsourcing_note: '施作中', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 17, lead_id: 20, readable_code: 'P2026020017', status: 'construction', contract_template_id: 2, sign_date: '2026-02-21', measure_date: '2026-02-11', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: 2, graph_user_name: '小蔡', account_user: 2, account_user_name: '小王', note: '', measure_done_at: '2026-02-12', material_date: '2026-03-01', outsourcing_contractor: '乙營造', outsourcing_assigned_at: '2026-03-02', outsourcing_quote_sent_at: '2026-03-01', outsourcing_expected_start: '2026-03-18', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 18, lead_id: 21, readable_code: 'P2026020018', status: 'construction', contract_template_id: 1, sign_date: '2026-02-18', measure_date: '2026-02-08', measure_time: '09:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-02-09', material_date: '2026-02-25', outsourcing_contractor: '丙水電', outsourcing_assigned_at: '2026-02-26', outsourcing_quote_sent_at: '2026-02-25', outsourcing_expected_start: '2026-03-12', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 19, lead_id: 19, readable_code: 'P2026020019', status: 'closed', contract_template_id: 1, sign_date: '2026-01-20', measure_date: '2026-01-10', measure_time: '10:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '已結案', measure_done_at: '2026-01-11', material_date: '2026-01-25', outsourcing_contractor: '甲工程行', outsourcing_assigned_at: '2026-01-26', outsourcing_quote_sent_at: '2026-01-25', outsourcing_expected_start: '2026-02-05', outsourcing_note: '完工', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 20, lead_id: 20, readable_code: 'P2026020020', status: 'closed', contract_template_id: 2, sign_date: '2026-01-15', measure_date: '2026-01-05', measure_time: '14:00', measurer_user: 2, measurer_name: '小林', graph_user: 2, graph_user_name: '小蔡', account_user: 2, account_user_name: '小王', note: '', measure_done_at: '2026-01-06', material_date: '2026-01-20', outsourcing_contractor: '乙營造', outsourcing_assigned_at: '2026-01-21', outsourcing_quote_sent_at: '2026-01-20', outsourcing_expected_start: '2026-02-01', outsourcing_note: '完工', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true },
+      { id: 21, lead_id: 21, readable_code: 'P2026020021', status: 'closed', contract_template_id: 1, sign_date: '2026-01-10', measure_date: '2026-01-02', measure_time: '09:00', measurer_user: 1, measurer_name: '阿國', graph_user: 1, graph_user_name: '設計師', account_user: 1, account_user_name: '預設', note: '', measure_done_at: '2026-01-03', material_date: '2026-01-18', outsourcing_contractor: '丙水電', outsourcing_assigned_at: '2026-01-19', outsourcing_quote_sent_at: '2026-01-18', outsourcing_expected_start: '2026-01-28', outsourcing_note: '', external_group: false, images_count: 0, task_measure_done: true, task_drawing_done: true }
+    ];
+    var dataContractTemplate = [
+      { id: 1, name: '模板 A｜老屋翻新', version: '1.0', is_active: 1 },
+      { id: 2, name: '模板 B｜新成屋', version: '1.0', is_active: 1 }
+    ];
+    var STAFF_MEASURE = ['阿國', '小林', '外包丈量'];
+    var STAFF_GRAPH = ['設計師', '小蔡', '外包繪圖'];
+    var STAFF_ACCOUNT = ['預設', '小王', '小林'];
+    var dataInteractionLog = [
+      { id: 1, form_response_id: 1, user_id: 1, note: '已致電未接，稍後再聯', created_at: '2026-02-23 10:30' },
+      { id: 2, form_response_id: 2, user_id: 1, note: '客戶確認可進一步接洽', created_at: '2026-02-23 09:15' }
+    ];
+
+    function nextLeadCode(){ var y = new Date().getFullYear(); var m = String(new Date().getMonth()+1).padStart(2,'0'); var n = (dataLead.filter(function(l){ return l.readable_code && l.readable_code.indexOf('C'+y+m)===0; }).length + 1); return 'C'+y+m+String(n).padStart(4,'0'); }
+    function nextProjectCode(){ var y = new Date().getFullYear(); var m = String(new Date().getMonth()+1).padStart(2,'0'); var n = (dataProject.filter(function(p){ return p.readable_code && p.readable_code.indexOf('P'+y+m)===0; }).length + 1); return 'P'+y+m+String(n).padStart(4,'0'); }
+    var dataMarketingStats = [
+      { region: '北區', total: 120, valid: 82, invalid: 38, self: 6, budget: 18 },
+      { region: '桃園', total: 96, valid: 63, invalid: 33, self: 5, budget: 15 },
+      { region: '台中', total: 88, valid: 59, invalid: 29, self: 4, budget: 13 },
+      { region: '彰化', total: 54, valid: 37, invalid: 17, self: 3, budget: 8 }
+    ];
+    var dataMarketingAudit = [
+      { project: '裝修預算系列', script: '裝修預算不夠怎麼辦', owner: 'CK', publish: '11/20', status: 'draft' },
+      { project: '設計師日常', script: '設計師在做什麼', owner: 'CK', publish: '11/22', status: 'reviewed' }
+    ];
+    var dataMarketingProject = [
+      { id: 1, campaign_code: 'A202510', name: '工地開箱影片｜內湖 A 案', branch_id: '北區', status: '已通過' },
+      { id: 2, campaign_code: 'B202511', name: 'IP 角色短影音｜信義工具箱', branch_id: '', status: '待審核' },
+      { id: 3, campaign_code: 'C202509', name: '完工紀錄影片｜士林 B 案', branch_id: '北區', status: '已通過' }
+    ];
+    var dataMarketingContent = [
+      { id: 1, marketing_project_id: 1, form_master_id: 1, title: '內湖 A 案開箱腳本', production_date: '2025/10/12', published_at: '2025/10/20' },
+      { id: 2, marketing_project_id: 2, form_master_id: 2, title: '信義工具箱短影音', production_date: '', published_at: '' }
+    ];
+    var dataDesignerCase = [
+      { id: 1, customer: '陳小姐', status: '聯絡關懷中', source: '行銷企劃', assigned: '2026/02/03' },
+      { id: 2, customer: '林先生', status: '聯絡關懷中', source: '一般管道', assigned: '2026/01/03' },
+      { id: 3, customer: '張小姐', status: '待丈量', source: '現場諮詢', assigned: '2026/01/30' },
+      { id: 4, customer: '吳先生', status: '待丈量', source: '行銷企劃', assigned: '2026/01/04' }
+    ];
+    var dataConstructionPackage = [
+      { id: 1, contract_code: 'C2026-001', project_code: 'P2026-001', customer_name: '陳小姐', address: '台北市大安區復興南路', period: '2026-02-15 ~ 2026-04-30',
+        quote: { estimated_start_date: '2026-02-15', estimated_end_date: '2026-04-30', total_amount: 2500000 },
+        quote_items: [
+          { id: 1, category: '拆除工程', category_id: 1, item_name: '全室高樓拆除', unit: '尺', quantity: 50, unit_price: 560, subtotal: 28000, note: '' },
+          { id: 2, category: '拆除工程', category_id: 1, item_name: '室內保護', unit: '坪', quantity: 30, unit_price: 1040, subtotal: 31200, note: '' },
+          { id: 3, category: '油漆工程', category_id: 3, item_name: '油漆銘色', unit: '坪', quantity: 25, unit_price: 2760, subtotal: 69000, note: '' },
+          { id: 4, category: '油漆工程', category_id: 3, item_name: '新成屋牆面刷漆', unit: '坪', quantity: 20, unit_price: 1180, subtotal: 23600, note: '' }
+        ],
+        gantt_items: [
+          { id: 1, quote_item_id: 1, category: '拆除工程', item_name: '全室高樓拆除', quantity: 50, unit: '尺', start_date: '2026-02-15', end_date: '2026-02-20', duration: 6 },
+          { id: 2, quote_item_id: 2, category: '拆除工程', item_name: '室內保護', quantity: 30, unit: '坪', start_date: '2026-02-15', end_date: '2026-02-16', duration: 2 },
+          { id: 3, quote_item_id: 3, category: '油漆工程', item_name: '油漆銘色', quantity: 25, unit: '坪', start_date: '2026-03-10', end_date: '2026-03-15', duration: 6 },
+          { id: 4, quote_item_id: 4, category: '油漆工程', item_name: '新成屋牆面刷漆', quantity: 20, unit: '坪', start_date: '2026-03-10', end_date: '2026-03-12', duration: 3 }
+        ]
+      },
+      { id: 2, contract_code: 'C2026-002', project_code: 'P2026-002', customer_name: '林先生', address: '新北市板橋區文化路', period: '2026-03-01 ~ 2026-05-15',
+        quote: { estimated_start_date: '2026-03-01', estimated_end_date: '2026-05-15', total_amount: 3200000 },
+        quote_items: [
+          { id: 5, category: '水電工程', category_id: 2, item_name: '插座出線口', unit: '處', quantity: 20, unit_price: 1110, subtotal: 22200, note: '' },
+          { id: 6, category: '水電工程', category_id: 2, item_name: '安裝開關/插座面板', unit: '個', quantity: 30, unit_price: 560, subtotal: 16800, note: '' },
+          { id: 7, category: '系統櫃工程', category_id: 6, item_name: '玄關高櫃', unit: '尺', quantity: 8, unit_price: 7530, subtotal: 60240, note: '' }
+        ],
+        gantt_items: [
+          { id: 5, quote_item_id: 5, category: '水電工程', item_name: '插座出線口', quantity: 20, unit: '處', start_date: '2026-03-05', end_date: '2026-03-08', duration: 4 },
+          { id: 6, quote_item_id: 6, category: '水電工程', item_name: '安裝開關/插座面板', quantity: 30, unit: '個', start_date: '2026-03-10', end_date: '2026-03-12', duration: 3 },
+          { id: 7, quote_item_id: 7, category: '系統櫃工程', item_name: '玄關高櫃', quantity: 8, unit: '尺', start_date: '2026-04-01', end_date: '2026-04-05', duration: 5 }
+        ]
+      }
+    ];
+    var cpPackageConfig = {};
+    var dataConstructionAccept = {
+      '拆除工程': {
+        sub: [{ active: true, name: '室內隔間拆除', unit: '坪', price: 1040, note: '含清運' }, { active: true, name: '天花板拆除', unit: '式', price: 4820, note: 'PVC 天花' }],
+        check: [{ active: true, item: '施工前斷水斷電', standard: '確認電源、水源完全關閉，並張貼警示標示', note: '施工前' }, { active: true, item: '門窗與地坪保護', standard: '保護材完整覆蓋，無裸露區域', note: '施工中' }, { active: true, item: '廢棄物清運完成', standard: '現場無殘留廢料，公共區域清潔', note: '完工' }]
+      },
+      '水電工程': {
+        sub: [{ active: true, name: '插座新增', unit: '處', price: 1110, note: '含材料' }, { active: true, name: '燈具安裝', unit: '盞', price: 560, note: '不含燈具' }],
+        check: [{ active: true, item: '配線標示完成', standard: '所有回路標示清楚', note: '施工中' }, { active: true, item: '通電測試', standard: '插座、開關測試正常', note: '完工' }]
+      },
+      '油漆工程': {
+        sub: [{ active: true, name: '牆面批土油漆', unit: '坪', price: 2760, note: 'ICI' }, { active: true, name: '天花板油漆', unit: '坪', price: 1590, note: '白色' }],
+        check: [{ active: true, item: '批土平整', standard: '無明顯刮痕、凹洞', note: '施工中' }, { active: true, item: '顏色一致', standard: '同一牆面無色差', note: '完工' }]
+      }
+    };
+    var dataHrSettlement = [
+      { code: 'EMP-017', dept: '設計部', role: '繪圖專員', done: 18, fail: 3 },
+      { code: 'EMP-022', dept: '設計部', role: '繪圖專員', done: 12, fail: 0 },
+      { code: 'EMP-031', dept: '設計部', role: '設計師', done: 9, fail: 1 }
+    ];
+
+    var dataMaterialCategory = [
+      { id: 1, code: 'CAT-01', name: '建材', parent_id: null, parent_name: '—', sequence: 1, valid: 1 },
+      { id: 2, code: 'CAT-02', name: '五金', parent_id: null, parent_name: '—', sequence: 2, valid: 1 },
+      { id: 3, code: 'CAT-01-A', name: '磁磚', parent_id: 1, parent_name: '建材', sequence: 1, valid: 1 }
+    ];
+    var MATERIAL_BRANCHES = ['北區倉', '桃園門市', '台中倉'];
+    var dataMaterialProduct = [
+      { id: 1, sku_code: 'SKU-001', name: '拋光石英磚 60x60', brand: '冠軍', model: '60x60', barcode: '', base_unit: '片', spec: '60x60cm', note: '', valid: 1 },
+      { id: 2, sku_code: 'SKU-002', name: '不鏽鋼螺絲', brand: '', model: 'M4', barcode: '', base_unit: '包', spec: '', note: '', valid: 1 },
+      { id: 3, sku_code: 'SKU-003', name: '水泥 50kg', brand: '台泥', model: '', barcode: '', base_unit: '包', spec: '50kg/包', note: '', valid: 1 }
+    ];
+    var dataMaterialHashtag = [
+      { id: 1, product_id: 1, product_name: '拋光石英磚 60x60', category_id: 3, category_name: '磁磚', is_primary: 1 },
+      { id: 2, product_id: 1, product_name: '拋光石英磚 60x60', category_id: 1, category_name: '建材', is_primary: 0 },
+      { id: 3, product_id: 2, product_name: '不鏽鋼螺絲', category_id: 2, category_name: '五金', is_primary: 1 }
+    ];
+    var dataMaterialInventory = [
+      { id: 1, branch_id: '北區倉', branch_name: '北區倉', product_id: 1, product_name: '拋光石英磚 60x60', qty_on_hand: 500, qty_reserved: 20, qty_available: 480 },
+      { id: 2, branch_id: '桃園門市', branch_name: '桃園門市', product_id: 1, product_name: '拋光石英磚 60x60', qty_on_hand: 120, qty_reserved: 0, qty_available: 120 },
+      { id: 3, branch_id: '北區倉', branch_name: '北區倉', product_id: 2, product_name: '不鏽鋼螺絲', qty_on_hand: 80, qty_reserved: 5, qty_available: 75 }
+    ];
+
+    var currentResponseDetailId = null;
+    function fillFormSelects(){
+      var formOpts = dataFormMaster.map(function(f){ return '<option value="'+f.id+'">'+f.name+'</option>'; }).join('');
+      var coForm = document.getElementById('co-form'); if(coForm && coForm.options.length <= 1){ coForm.innerHTML = '<option value="">全選</option>'+formOpts; }
+      var frForm = document.getElementById('fr-form'); if(frForm && frForm.options.length <= 1){ frForm.innerHTML = '<option value="">全選</option>'+formOpts; }
+    }
+    var renderPage = {
+      'customer-order': function(){
+        fillFormSelects();
+        var nameKw = (document.getElementById('co-name').value || '').trim().toLowerCase();
+        var phoneKw = (document.getElementById('co-phone').value || '').trim().toLowerCase();
+        var formId = document.getElementById('co-form').value;
+        var status = document.getElementById('co-status').value;
+        var list = dataFormResponse.filter(function(r){
+          var lead = r.lead_id ? dataLead.find(function(l){ return l.id === r.lead_id; }) : null;
+          var displayName = (lead ? lead.customer_name : r.name) || '';
+          var displayPhone = (lead ? lead.phone : r.phone_num) || '';
+          if(nameKw && displayName.toLowerCase().indexOf(nameKw) === -1) return false;
+          if(phoneKw && displayPhone.toLowerCase().indexOf(phoneKw) === -1) return false;
+          if(formId && String(r.form_master_id) !== formId) return false;
+          if(status && r.status !== status) return false;
+          return true;
+        });
+        var formNameMap = {}; dataFormMaster.forEach(function(f){ formNameMap[f.id]=f.name; });
+        var statusTextMap = { pending:'待處理', claimed:'已接單', converted:'已立案', closed:'已結案' };
+        var tbody = document.getElementById('tb-customer-order');
+        tbody.innerHTML = list.map(function(r){
+          var lead = r.lead_id ? dataLead.find(function(l){ return l.id === r.lead_id; }) : null;
+          var displayName = lead ? lead.customer_name : r.name;
+          var displayPhone = lead ? lead.phone : r.phone_num;
+          var displayAddress = lead ? lead.address : (r.address || '');
+          var formName = formNameMap[r.form_master_id] || r.form_master_id;
+          var st = statusTextMap[r.status] || r.status;
+          var isOwner = lead && lead.owner_user_id === currentUserId;
+          var showAssign = isOwner && lead && lead.status !== 'converted';
+          var menu = '<button type="button" onclick="closeCoMenu(); openResponseDetail('+r.id+')">查看</button>';
+          if(r.status === 'pending') menu += '<button type="button" onclick="closeCoMenu(); claimLeadForResponse('+r.id+')">接單</button>';
+          if(showAssign) menu += '<button type="button" onclick="closeCoMenu(); openAssignDesignerDialogForResponse('+r.id+')">派設計師</button>';
+          return '<tr><td>'+displayName+'</td><td>'+displayPhone+'</td><td>'+displayAddress+'</td><td>'+formName+'</td><td>'+st+'</td><td>'+r.submitted_at+'</td><td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \'co-menu-'+r.id+'\')">⋯</button><div class="co-action-menu" id="co-menu-'+r.id+'">'+menu+'</div></td></tr>';
+        }).join('');
+      },
+      'marketing-stats': function(){
+        var month = document.getElementById('ms-month').value;
+        var region = document.getElementById('ms-region').value;
+        var list = dataMarketingStats.filter(function(r){
+          if(region && r.region !== region) return false;
+          return true;
+        });
+        var tbody = document.getElementById('tb-marketing-stats');
+        tbody.innerHTML = list.map(function(r, i){
+          var mid = 'op-ms-'+i;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'" data-key="'+escAttr(r.region)+'"><button type="button" onclick="closeCoMenu(); editRow(\'marketing-stats\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">編輯</button><button type="button" onclick="closeCoMenu(); deleteRow(\'marketing-stats\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">刪除</button></div></td>';
+          return '<tr><td>'+r.region+'</td><td>'+r.total+'</td><td class="good">'+r.valid+'</td><td class="bad">'+r.invalid+'</td><td>'+r.self+'</td><td>'+r.budget+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'marketing-audit': function(){
+        var project = document.getElementById('ma-project').value;
+        var status = document.getElementById('ma-status').value;
+        var list = dataMarketingAudit.filter(function(r){
+          if(project && r.project !== project) return false;
+          if(status && r.status !== status) return false;
+          return true;
+        });
+        var tbody = document.getElementById('tb-marketing-audit');
+        tbody.innerHTML = list.map(function(r, i){
+          var mid = 'op-ma-'+i;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'" data-key="'+escAttr(r.project)+'"><button type="button" onclick="closeCoMenu(); editRow(\'marketing-audit\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">編輯</button><button type="button" onclick="closeCoMenu(); deleteRow(\'marketing-audit\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">刪除</button></div></td>';
+          return '<tr><td>'+r.project+'</td><td>'+r.script+'</td><td>'+r.owner+'</td><td>'+r.publish+'</td><td>'+r.status+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'marketing-project': function(){
+        var keyword = (document.getElementById('mp-name').value || '').toLowerCase();
+        var status = document.getElementById('mp-status').value;
+        var branch = document.getElementById('mp-branch').value;
+        var list = dataMarketingProject.filter(function(r){
+          if(keyword){
+            var match = (r.name && r.name.toLowerCase().indexOf(keyword) !== -1) || (r.campaign_code && r.campaign_code.toLowerCase().indexOf(keyword) !== -1);
+            if(!match) return false;
+          }
+          if(status && r.status !== status) return false;
+          if(branch !== undefined && branch !== '' && r.branch_id !== branch) return false;
+          return true;
+        });
+        var tbody = document.getElementById('tb-marketing-project');
+        var branchDisplay = function(b){ return b ? b : '總公司'; };
+        tbody.innerHTML = list.map(function(r, i){
+          var mid = 'op-mp-'+i;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'" data-id="'+r.id+'"><button type="button" onclick="closeCoMenu(); editRow(\'marketing-project\','+r.id+')">編輯</button><button type="button" onclick="closeCoMenu(); showMarketingContent('+r.id+')">行銷內容</button><button type="button" onclick="closeCoMenu(); deleteRow(\'marketing-project\','+r.id+')">刪除</button></div></td>';
+          return '<tr><td>'+(r.campaign_code||'—')+'</td><td>'+r.name+'</td><td>'+branchDisplay(r.branch_id)+'</td><td>'+r.status+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'marketing-form': function(){
+        fillFormSelects();
+        var activeTab = document.querySelector('#page-marketing-form .tabs .tab.active');
+        var tab = activeTab ? activeTab.getAttribute('data-tab') : 'form-master';
+        if(tab === 'form-master'){
+          var kw = (document.getElementById('fm-name').value || '').toLowerCase();
+          var list = dataFormMaster.filter(function(f){ return !kw || (f.name&&f.name.toLowerCase().indexOf(kw)!==-1) || (f.code&&f.code.toLowerCase().indexOf(kw)!==-1); });
+          var tbody = document.getElementById('tb-form-master');
+          tbody.innerHTML = list.map(function(f, i){
+            var mid = 'op-fm-'+i;
+            var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'"><button type="button" onclick="closeCoMenu(); openFormMasterEditDialog('+f.id+')">編輯</button><button type="button" onclick="closeCoMenu(); deleteRow(\'form-master\','+f.id+')">刪除</button></div></td>';
+            return '<tr><td>'+f.name+'</td><td>'+(f.code||'')+'</td><td>'+(f.version||'')+'</td><td>'+(f.valid? '啟用':'停用')+'</td>'+op+'</tr>';
+          }).join('');
+        } else {
+          var frFormId = document.getElementById('fr-form').value;
+          var frStatus = document.getElementById('fr-status').value;
+          var list = dataFormResponse.filter(function(r){
+            if(frFormId && String(r.form_master_id)!==frFormId) return false;
+            if(frStatus && r.status!==frStatus) return false;
+            return true;
+          });
+          var formNameMap = {}; dataFormMaster.forEach(function(f){ formNameMap[f.id]=f.name; });
+          var statusTextMap = { pending:'待處理', claimed:'已接單', converted:'已立案', closed:'已結案' };
+          var tbody = document.getElementById('tb-form-response');
+          tbody.innerHTML = list.map(function(r, i){
+            var st = statusTextMap[r.status]||r.status;
+            var mid = 'op-fr-'+i;
+            var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'"><button type="button" onclick="closeCoMenu(); openFormResponseViewDialog('+r.id+')">查看</button></div></td>';
+            return '<tr><td>'+r.name+'</td><td>'+r.phone_num+'</td><td>'+r.address+'</td><td>'+(formNameMap[r.form_master_id]||'')+'</td><td>'+st+'</td><td>'+r.submitted_at+'</td>'+op+'</tr>';
+          }).join('');
+        }
+      },
+      'designer-case': function(){
+        var status = document.getElementById('dc-status').value;
+        var customer = (document.getElementById('dc-customer').value || '').toLowerCase();
+        var list = dataProject.filter(function(p){
+          if(status && p.status !== status) return false;
+          var lead = dataLead.find(function(l){ return l.id === p.lead_id; });
+          var name = lead ? lead.customer_name : '';
+          if(customer && name.toLowerCase().indexOf(customer) === -1) return false;
+          return true;
+        });
+        var statusTextMap = { contact:'聯絡關懷中', measure:'待丈量', signing:'待簽約', material:'待選材', outsourcing:'發包中', construction:'施作中', closed:'已結案' };
+        var tbody = document.getElementById('tb-designer-case');
+        tbody.innerHTML = list.map(function(p, i){
+          var lead = dataLead.find(function(l){ return l.id === p.lead_id; });
+          var name = lead ? lead.customer_name : '—';
+          var st = statusTextMap[p.status] || p.status;
+          var mid = 'op-dc-'+i;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'"><button type="button" onclick="closeCoMenu(); openDesignerProjectDetail('+p.id+')">查看</button></div></td>';
+          return '<tr><td>'+p.readable_code+'</td><td>'+name+'</td><td>'+st+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'construction-package': function(){
+        var code = (document.getElementById('cp-code').value || '').toLowerCase();
+        var customer = document.getElementById('cp-customer').value;
+        var list = dataConstructionPackage.filter(function(r){
+          if(code && (r.contract_code+r.project_code).toLowerCase().indexOf(code) === -1) return false;
+          if(customer && r.customer_name !== customer) return false;
+          return true;
+        });
+        var tbody = document.getElementById('tb-construction-package');
+        tbody.innerHTML = list.map(function(r, i){
+          var mid = 'op-cp-'+i;
+          var key = escAttr(r.contract_code);
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'" data-key="'+key+'"><button type="button" onclick="closeCoMenu(); openCpQuoteDialog(document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">查看報價單明細</button><button type="button" onclick="closeCoMenu(); openCpGanttDialog(document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">施工甘特圖</button><button type="button" onclick="closeCoMenu(); openCpPackageDialog(document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">發包配置</button><button type="button" onclick="closeCoMenu(); editRow(\'construction-package\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">編輯</button><button type="button" onclick="closeCoMenu(); deleteRow(\'construction-package\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">刪除</button></div></td>';
+          return '<tr><td>'+r.contract_code+'</td><td>'+r.project_code+'</td><td>'+r.customer_name+'</td><td>'+r.address+'</td><td>'+r.period+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'construction-accept': function(){
+        var mainKeys = Object.keys(dataConstructionAccept);
+        var expanded = window._caExpandedMain || null;
+        var listEl = document.getElementById('ca-parent-list');
+        listEl.innerHTML = mainKeys.map(function(main){
+          var mainEsc = escAttr(main);
+          var mainJs = (main||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          var isExp = expanded === main;
+          var subRows = (dataConstructionAccept[main].sub || []);
+          var checkRows = (dataConstructionAccept[main].check || []);
+          var subTable = subRows.map(function(r, idx){
+            return '<tr><td>'+(r.active?'是':'否')+'</td><td>'+escHtml(r.name||'')+'</td><td>'+escHtml(r.unit||'')+'</td><td>'+escHtml(r.price||'')+'</td><td>'+escHtml(r.note||'')+'</td><td><button type="button" class="btn btn-sm" onclick="openCaEditDialog(\''+mainJs+'\', \'sub\', '+idx+')">編輯</button></td></tr>';
+          }).join('');
+          var checkTable = checkRows.map(function(r, idx){
+            return '<tr><td>'+(r.active?'是':'否')+'</td><td>'+escHtml(r.item||'')+'</td><td>'+escHtml(r.standard||'')+'</td><td>'+escHtml(r.note||'')+'</td><td><button type="button" class="btn btn-sm" onclick="openCaEditDialog(\''+mainJs+'\', \'check\', '+idx+')">編輯</button></td></tr>';
+          }).join('');
+          var activeTab = (window._caActiveTab === 'check') ? 'check' : 'sub';
+          var subActive = (isExp && activeTab === 'sub') ? ' active' : '';
+          var checkActive = (isExp && activeTab === 'check') ? ' active' : '';
+          var bodyDisplay = isExp ? 'block' : 'none';
+          return '<div class="ca-parent'+(isExp?' expanded':'')+'" data-main="'+mainEsc+'">' +
+            '<div class="ca-parent-header" onclick="toggleCaExpand(\''+mainJs+'\')">' +
+              '<span class="ca-parent-name">'+escHtml(main)+'</span>' +
+              '<span class="ca-parent-arrow">▶</span>' +
+            '</div>' +
+            '<div class="ca-parent-body" style="display:'+bodyDisplay+'">' +
+              '<div class="ca-tabs">' +
+                '<button type="button" class="ca-tab'+subActive+'" data-main="'+mainEsc+'" data-tab="sub" onclick="switchCaTab(this)">子項目</button>' +
+                '<button type="button" class="ca-tab'+checkActive+'" data-main="'+mainEsc+'" data-tab="check" onclick="switchCaTab(this)">驗收項目</button>' +
+              '</div>' +
+              '<div class="ca-tab-panel'+subActive+'" data-main="'+mainEsc+'" data-tab="sub">' +
+                '<div class="ca-panel-toolbar"><button type="button" class="btn btn-primary btn-sm" onclick="openCaEditDialog(\''+mainJs+'\', \'sub\', null)">新增</button></div>' +
+                '<div class="table-wrap"><table class="ca-edit-table"><thead><tr><th>啟用</th><th>內容</th><th>預設單位</th><th>建議單價</th><th>備註</th><th>操作</th></tr></thead><tbody>'+subTable+'</tbody></table></div>' +
+              '</div>' +
+              '<div class="ca-tab-panel'+checkActive+'" data-main="'+mainEsc+'" data-tab="check">' +
+                '<div class="ca-panel-toolbar"><button type="button" class="btn btn-primary btn-sm" onclick="openCaEditDialog(\''+mainJs+'\', \'check\', null)">新增</button></div>' +
+                '<div class="table-wrap"><table class="ca-edit-table"><thead><tr><th>啟用</th><th>檢驗項目</th><th>檢驗標準</th><th>備註</th><th>操作</th></tr></thead><tbody>'+checkTable+'</tbody></table></div>' +
+              '</div>' +
+            '</div>' +
+            '</div>';
+        }).join('');
+      },
+      'hr-settlement': function(){
+        var dept = document.getElementById('hr-dept').value;
+        var role = document.getElementById('hr-role').value;
+        var list = dataHrSettlement.filter(function(r){
+          if(dept && r.dept !== dept) return false;
+          if(role && r.role !== role) return false;
+          return true;
+        });
+        var tbody = document.getElementById('tb-hr-settlement');
+        tbody.innerHTML = list.map(function(r, i){
+          var mid = 'op-hr-'+i;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'" data-key="'+escAttr(r.code)+'"><button type="button" onclick="closeCoMenu(); editRow(\'hr-settlement\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">編輯</button><button type="button" onclick="closeCoMenu(); deleteRow(\'hr-settlement\', document.getElementById(\''+mid+'\').getAttribute(\'data-key\'))">刪除</button></div></td>';
+          return '<tr><td>'+r.code+'</td><td>'+r.dept+'</td><td>'+r.role+'</td><td>'+r.done+'</td><td>'+r.fail+'</td>'+op+'</tr>';
+        }).join('');
+      },
+      'material-control': function(){
+        var sku = (document.getElementById('mat-sku')?.value || '').toLowerCase();
+        var name = (document.getElementById('mat-name')?.value || '').toLowerCase();
+        var brand = (document.getElementById('mat-brand')?.value || '').toLowerCase();
+        var model = (document.getElementById('mat-model')?.value || '').toLowerCase();
+        var catId = document.getElementById('mat-category')?.value;
+        var catSelect = document.getElementById('mat-category');
+        if(catSelect && catSelect.options.length <= 1){
+          catSelect.innerHTML = '<option value="">全選</option>'+dataMaterialCategory.filter(function(c){ return c.valid==1; }).map(function(c){ return '<option value="'+c.id+'">'+c.code+' '+c.name+'</option>'; }).join('');
+        }
+        var list = dataMaterialProduct.filter(function(p){
+          if(sku && (p.sku_code||'').toLowerCase().indexOf(sku) === -1) return false;
+          if(name && (p.name||'').toLowerCase().indexOf(name) === -1) return false;
+          if(brand && (p.brand||'').toLowerCase().indexOf(brand) === -1) return false;
+          if(model && (p.model||'').toLowerCase().indexOf(model) === -1) return false;
+          if(catId){
+            var hasCat = dataMaterialHashtag.some(function(h){ return h.product_id === p.id && h.category_id == catId; });
+            if(!hasCat) return false;
+          }
+          return true;
+        });
+        var tbody = document.getElementById('tb-material-control');
+        tbody.innerHTML = list.map(function(p){
+          var tags = dataMaterialHashtag.filter(function(h){ return h.product_id === p.id; });
+          var primary = tags.find(function(t){ return t.is_primary==1; });
+          var primaryName = primary ? primary.category_name : '—';
+          var hashtagStr = tags.map(function(t){ return t.category_name; }).join('、') || '—';
+          var branchCells = MATERIAL_BRANCHES.map(function(b){
+            var inv = dataMaterialInventory.find(function(i){ return i.product_id === p.id && i.branch_id === b; });
+            if(!inv) return '<td>—</td>';
+            return '<td>'+inv.qty_on_hand+' / '+inv.qty_reserved+' / '+inv.qty_available+'</td>';
+          }).join('');
+          var mid = 'op-mat-'+p.id;
+          var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'"><button type="button" onclick="closeCoMenu(); openMaterialProductDrawer('+p.id+')">編輯</button></div></td>';
+          return '<tr><td>'+p.sku_code+'</td><td>'+p.name+'</td><td>'+primaryName+'</td><td>'+hashtagStr+'</td>'+branchCells+op+'</tr>';
+        }).join('');
+      }
+    };
+
+    var currentProductDrawerId = null;
+    function openMaterialProductDrawer(productId){
+      currentProductDrawerId = productId;
+      document.getElementById('productDrawerTitle').textContent = productId ? '編輯商品' : '新增商品';
+      if(productId){
+        var p = dataMaterialProduct.find(function(x){ return x.id === productId; });
+        if(!p) return;
+        document.getElementById('d-sku').value = p.sku_code || '';
+        document.getElementById('d-name').value = p.name || '';
+        document.getElementById('d-brand').value = p.brand || '';
+        document.getElementById('d-model').value = p.model || '';
+        document.getElementById('d-barcode').value = p.barcode || '';
+        document.getElementById('d-base_unit').value = p.base_unit || 'pcs';
+        document.getElementById('d-spec').value = p.spec || '';
+        document.getElementById('d-note').value = p.note || '';
+        document.getElementById('d-valid').value = String(p.valid);
+      } else {
+        document.getElementById('d-sku').value = '';
+        document.getElementById('d-name').value = '';
+        document.getElementById('d-brand').value = '';
+        document.getElementById('d-model').value = '';
+        document.getElementById('d-barcode').value = '';
+        document.getElementById('d-base_unit').value = 'pcs';
+        document.getElementById('d-spec').value = '';
+        document.getElementById('d-note').value = '';
+        document.getElementById('d-valid').value = '1';
+      }
+      var container = document.getElementById('hashtagCheckboxes');
+      var tags = dataMaterialHashtag.filter(function(h){ return h.product_id === productId; });
+      var primaryId = (tags.find(function(t){ return t.is_primary==1; }) || {}).category_id;
+      var catList = dataMaterialCategory.filter(function(c){ return c.valid==1; });
+      container.innerHTML = catList.length ? catList.map(function(c){
+        var checked = tags.some(function(t){ return t.category_id === c.id; });
+        var isPrimary = c.id === primaryId;
+        return '<label><input type="checkbox" data-cat-id="'+c.id+'"'+(checked?' checked':'')+'> <input type="radio" name="drawer_primary" value="'+c.id+'"'+(isPrimary?' checked':'')+'> 主分類 &nbsp;'+c.code+' '+c.name+'</label>';
+      }).join('') : '<p style="color:#718096;font-size:13px">尚無分類，請先至「分類管理」新增。</p>';
+      var invBody = document.getElementById('drawerInventoryBody');
+      var rows = MATERIAL_BRANCHES.map(function(b){
+        var inv = dataMaterialInventory.find(function(i){ return i.product_id === productId && i.branch_id === b; });
+        return '<tr><td>'+b+'</td><td>'+(inv?inv.qty_on_hand:'0')+'</td><td>'+(inv?inv.qty_reserved:'0')+'</td><td>'+(inv?inv.qty_available:'0')+'</td></tr>';
+      }).join('');
+      invBody.innerHTML = rows;
+      document.getElementById('productDialogOverlay').classList.add('show');
+    }
+    function closeMaterialProductDrawer(){
+      document.getElementById('productDialogOverlay').classList.remove('show');
+    }
+    function toggleHashtag(catId){}
+    function saveMaterialProduct(){
+      var sku = document.getElementById('d-sku').value.trim();
+      var name = document.getElementById('d-name').value.trim();
+      if(!name) { alert('請輸入品名'); return; }
+      var primaryRadio = document.querySelector('input[name="drawer_primary"]:checked');
+      var primaryCatId = primaryRadio ? parseInt(primaryRadio.value, 10) : null;
+      var checkedCats = [];
+      document.querySelectorAll('#hashtagCheckboxes input[type="checkbox"]:checked').forEach(function(cb){
+        checkedCats.push(parseInt(cb.getAttribute('data-cat-id'), 10));
+      });
+      if(primaryCatId !== null && checkedCats.indexOf(primaryCatId) === -1) primaryCatId = checkedCats.length ? checkedCats[0] : null;
+      if(currentProductDrawerId){
+        var p = dataMaterialProduct.find(function(x){ return x.id === currentProductDrawerId; });
+        if(p){
+          p.sku_code = sku || p.sku_code;
+          p.name = name;
+          p.brand = document.getElementById('d-brand').value;
+          p.model = document.getElementById('d-model').value;
+          p.barcode = document.getElementById('d-barcode').value;
+          p.base_unit = document.getElementById('d-base_unit').value;
+          p.spec = document.getElementById('d-spec').value;
+          p.note = document.getElementById('d-note').value;
+          p.valid = parseInt(document.getElementById('d-valid').value, 10);
+        }
+        dataMaterialHashtag = dataMaterialHashtag.filter(function(h){ return h.product_id !== currentProductDrawerId; });
+        var nextId = dataMaterialHashtag.length ? Math.max.apply(null, dataMaterialHashtag.map(function(r){ return r.id; })) + 1 : 1;
+        checkedCats.forEach(function(cid, idx){
+          var c = dataMaterialCategory.find(function(x){ return x.id === cid; });
+          dataMaterialHashtag.push({ id: nextId++, product_id: currentProductDrawerId, product_name: p.name, category_id: cid, category_name: c ? c.name : '', is_primary: cid === primaryCatId ? 1 : 0 });
+        });
+      } else {
+        var newId = dataMaterialProduct.length ? Math.max.apply(null, dataMaterialProduct.map(function(r){ return r.id; })) + 1 : 1;
+        dataMaterialProduct.push({ id: newId, sku_code: sku || ('SKU-'+newId), name: name, brand: document.getElementById('d-brand').value, model: document.getElementById('d-model').value, barcode: document.getElementById('d-barcode').value, base_unit: document.getElementById('d-base_unit').value, spec: document.getElementById('d-spec').value, note: document.getElementById('d-note').value, valid: parseInt(document.getElementById('d-valid').value, 10) });
+        var hid = dataMaterialHashtag.length ? Math.max.apply(null, dataMaterialHashtag.map(function(r){ return r.id; })) + 1 : 1;
+        var pName = name;
+        checkedCats.forEach(function(cid){
+          var c = dataMaterialCategory.find(function(x){ return x.id === cid; });
+          dataMaterialHashtag.push({ id: hid++, product_id: newId, product_name: pName, category_id: cid, category_name: c ? c.name : '', is_primary: cid === primaryCatId ? 1 : 0 });
+        });
+        MATERIAL_BRANCHES.forEach(function(b){
+          if(!dataMaterialInventory.some(function(i){ return i.product_id === newId && i.branch_id === b; })){
+            var iid = dataMaterialInventory.length ? Math.max.apply(null, dataMaterialInventory.map(function(r){ return r.id; })) + 1 : 1;
+            dataMaterialInventory.push({ id: iid, branch_id: b, branch_name: b, product_id: newId, product_name: pName, qty_on_hand: 0, qty_reserved: 0, qty_available: 0 });
+          }
+        });
+      }
+      closeMaterialProductDrawer();
+      doQuery('material-control');
+    }
+
+    var categoryEditId = null;
+    function openCategoryModal(){
+      document.getElementById('categoryModal').classList.add('show');
+      renderCategoryTree();
+      cancelCategoryForm();
+    }
+    function closeCategoryModal(){
+      document.getElementById('categoryModal').classList.remove('show');
+    }
+    function renderCategoryTree(){
+      var list = dataMaterialCategory.slice().sort(function(a,b){ return (a.sequence||0) - (b.sequence||0) || a.id - b.id; });
+      var html = '<table class="table" style="width:100%;font-size:13px"><thead><tr><th>代碼</th><th>名稱</th><th>父分類</th><th>排序</th><th>狀態</th><th>操作</th></tr></thead><tbody>';
+      list.forEach(function(c, i){
+        var mid = 'op-cat-'+i;
+        var op = '<td class="co-op-cell"><button type="button" class="btn btn-sm" onclick="event.stopPropagation(); toggleActionMenu(event, \''+mid+'\')">⋯</button><div class="co-action-menu" id="'+mid+'"><button type="button" onclick="closeCoMenu(); editCategory('+c.id+')">編輯</button></div></td>';
+        html += '<tr><td>'+c.code+'</td><td>'+c.name+'</td><td>'+(c.parent_name||'—')+'</td><td>'+c.sequence+'</td><td>'+(c.valid==1?'啟用':'停用')+'</td>'+op+'</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('categoryTreeList').innerHTML = html;
+      var sel = document.getElementById('cat-parent');
+      sel.innerHTML = '<option value="">— 無 —</option>'+dataMaterialCategory.map(function(c){ return '<option value="'+c.id+'">'+c.code+' '+c.name+'</option>'; }).join('');
+    }
+    function openAddCategoryForm(){
+      categoryEditId = null;
+      document.getElementById('cat-code').value = '';
+      document.getElementById('cat-name').value = '';
+      document.getElementById('cat-parent').value = '';
+      document.getElementById('cat-sequence').value = '0';
+      document.getElementById('cat-valid').value = '1';
+      document.getElementById('categoryFormBlock').style.display = 'block';
+    }
+    function editCategory(id){
+      var c = dataMaterialCategory.find(function(x){ return x.id === id; });
+      if(!c) return;
+      categoryEditId = id;
+      document.getElementById('cat-code').value = c.code || '';
+      document.getElementById('cat-name').value = c.name || '';
+      document.getElementById('cat-parent').value = c.parent_id || '';
+      document.getElementById('cat-sequence').value = c.sequence || 0;
+      document.getElementById('cat-valid').value = String(c.valid);
+      document.getElementById('categoryFormBlock').style.display = 'block';
+    }
+    function cancelCategoryForm(){
+      categoryEditId = null;
+      document.getElementById('categoryFormBlock').style.display = 'none';
+    }
+    function saveCategory(){
+      var code = document.getElementById('cat-code').value.trim();
+      var name = document.getElementById('cat-name').value.trim();
+      if(!code || !name) { alert('請填寫分類代碼與名稱'); return; }
+      var parentId = document.getElementById('cat-parent').value;
+      parentId = parentId === '' ? null : parseInt(parentId, 10);
+      var sequence = parseInt(document.getElementById('cat-sequence').value, 10) || 0;
+      var valid = parseInt(document.getElementById('cat-valid').value, 10);
+      var parent = parentId ? dataMaterialCategory.find(function(c){ return c.id === parentId; }) : null;
+      var parentName = parent ? parent.name : '—';
+      if(categoryEditId){
+        var i = dataMaterialCategory.findIndex(function(c){ return c.id === categoryEditId; });
+        if(i>=0){ dataMaterialCategory[i] = { id: categoryEditId, code: code, name: name, parent_id: parentId, parent_name: parentName, sequence: sequence, valid: valid }; }
+      } else {
+        var newId = dataMaterialCategory.length ? Math.max.apply(null, dataMaterialCategory.map(function(r){ return r.id; })) + 1 : 1;
+        dataMaterialCategory.push({ id: newId, code: code, name: name, parent_id: parentId, parent_name: parentName, sequence: sequence, valid: valid });
+      }
+      cancelCategoryForm();
+      renderCategoryTree();
+      if(document.getElementById('productDialogOverlay').classList.contains('show')){ var pid = currentProductDrawerId; openMaterialProductDrawer(pid); }
+    }
+
+    var currentDialog = { pageId: '', editId: null };
+
+    var formConfig = {
+      'customer-order': [
+        { name: 'name', label: '姓名', type: 'text' },
+        { name: 'source', label: '來源', type: 'select', options: [{ value: '行銷企劃', text: '行銷企劃' }, { value: '一般管道', text: '一般管道' }, { value: '現場諮詢', text: '現場諮詢' }] },
+        { name: 'branch', label: '分店', type: 'select', options: [{ value: '北區', text: '北區' }, { value: '桃園', text: '桃園' }, { value: '台中', text: '台中' }, { value: '彰化', text: '彰化' }] },
+        { name: 'status', label: '狀態', type: 'select', options: [{ value: '待接單', text: '待接單' }, { value: '我已接', text: '我已接' }, { value: '無效案件', text: '無效案件' }] },
+        { name: 'createdAt', label: '建立時間', type: 'text', placeholder: '例：2026-02-23 10:00' }
+      ],
+      'marketing-stats': [
+        { name: 'region', label: '分店', type: 'select', options: [{ value: '北區', text: '北區' }, { value: '桃園', text: '桃園' }, { value: '台中', text: '台中' }, { value: '彰化', text: '彰化' }] },
+        { name: 'total', label: '總案件', type: 'number' },
+        { name: 'valid', label: '有效', type: 'number' },
+        { name: 'invalid', label: '無效', type: 'number' },
+        { name: 'self', label: '自來客', type: 'number' },
+        { name: 'budget', label: '預算不足', type: 'number' }
+      ],
+      'marketing-audit': [
+        { name: 'project', label: '專案', type: 'text' },
+        { name: 'script', label: '企劃腳本', type: 'text' },
+        { name: 'owner', label: '負責人', type: 'text' },
+        { name: 'publish', label: '上片日', type: 'text' },
+        { name: 'status', label: '狀態', type: 'select', options: [{ value: 'draft', text: 'draft' }, { value: 'reviewed', text: 'reviewed' }] }
+      ],
+      'marketing-project': [
+        { name: 'campaign_code', label: 'campaign_code', type: 'text', placeholder: '行銷代碼' },
+        { name: 'name', label: '專案名稱', type: 'text' },
+        { name: 'branch_id', label: '分店', type: 'select', options: [{ value: '', text: '總公司' }, { value: '北區', text: '北區' }, { value: '桃園', text: '桃園' }, { value: '台中', text: '台中' }, { value: '彰化', text: '彰化' }] },
+        { name: 'status', label: '狀態', type: 'select', options: [{ value: '待審核', text: '待審核' }, { value: '已通過', text: '已通過' }] }
+      ],
+      'form-master': [
+        { name: 'name', label: '表單名稱', type: 'text' },
+        { name: 'code', label: '表單代碼', type: 'text' },
+        { name: 'version', label: '版本', type: 'text', placeholder: '例：1.0' },
+        { name: 'valid', label: '狀態', type: 'select', options: [{ value: '1', text: '啟用' }, { value: '0', text: '停用' }] }
+      ],
+      'designer-case': [
+        { name: 'customer', label: '客戶', type: 'text' },
+        { name: 'status', label: '狀態', type: 'select', options: [{ value: '聯絡關懷中', text: '聯絡關懷中' }, { value: '待丈量', text: '待丈量' }, { value: '待簽約', text: '待簽約' }, { value: '施作中', text: '施作中' }, { value: '已結案', text: '已結案' }] },
+        { name: 'source', label: '來源', type: 'select', options: [{ value: '行銷企劃', text: '行銷企劃' }, { value: '一般管道', text: '一般管道' }, { value: '現場諮詢', text: '現場諮詢' }] },
+        { name: 'assigned', label: '派發日', type: 'text', placeholder: '例：2026/02/03' }
+      ],
+      'construction-package': [
+        { name: 'contract_code', label: '合約代碼', type: 'text' },
+        { name: 'project_code', label: '案件代碼', type: 'text' },
+        { name: 'customer_name', label: '客戶', type: 'text' },
+        { name: 'address', label: '地址', type: 'text' },
+        { name: 'period', label: '預估工期', type: 'text', placeholder: '例：2026-02-15 ~ 2026-04-30' }
+      ],
+      'hr-settlement': [
+        { name: 'code', label: '員工代碼', type: 'text', placeholder: '例：EMP-017' },
+        { name: 'dept', label: '部門', type: 'select', options: [{ value: '設計部', text: '設計部' }] },
+        { name: 'role', label: '職位', type: 'select', options: [{ value: '繪圖專員', text: '繪圖專員' }, { value: '設計師', text: '設計師' }] },
+        { name: 'done', label: '完成任務卡', type: 'number' },
+        { name: 'fail', label: '審核失敗次數', type: 'number' }
+      ],
+    };
+
+    function renderDialogForm(pageId, data){
+      var config = formConfig[pageId];
+      if(!config) return;
+      var body = document.getElementById('dialogBody');
+      var html = '';
+      function esc(s){ if(s === undefined || s === null) return ''; return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+      config.forEach(function(f){
+        html += '<div class="form-row"><label>'+f.label+'</label>';
+        var val = (data && data[f.name] !== undefined && data[f.name] !== null) ? data[f.name] : '';
+        var pid = 'd-' + pageId.replace(/-/g, '_') + '-' + f.name;
+        if(f.type === 'select'){
+          html += '<select id="'+pid+'">';
+          (f.options || []).forEach(function(opt){
+            html += '<option value="'+esc(opt.value)+'"'+(val === opt.value ? ' selected' : '')+'>'+esc(opt.text)+'</option>';
+          });
+          html += '</select>';
+        } else if(f.type === 'number'){
+          html += '<input type="number" id="'+pid+'" value="'+esc(val)+'" />';
+        } else {
+          html += '<input type="text" id="'+pid+'" value="'+esc(val)+'"'+(f.placeholder ? ' placeholder="'+esc(f.placeholder)+'"' : '')+' />';
+        }
+        html += '</div>';
+      });
+      body.innerHTML = html;
+    }
+
+    function getFormData(pageId){
+      var config = formConfig[pageId];
+      if(!config) return null;
+      var data = {};
+      config.forEach(function(f){
+        var pid = 'd-' + pageId.replace(/-/g, '_') + '-' + f.name;
+        var el = document.getElementById(pid);
+        if(!el) return;
+        var v = el.value;
+        if(f.type === 'number') v = parseInt(v, 10) || 0;
+        data[f.name] = v;
+      });
+      return data;
+    }
+
+    function openAddDialog(pageId){
+      if(pageId === 'form-master' && !document.getElementById('page-marketing-form').classList.contains('active')) showPage('marketing-form');
+      currentDialog.pageId = pageId;
+      currentDialog.editId = null;
+      document.getElementById('dialogTitle').textContent = '新增';
+      if(formConfig[pageId]) renderDialogForm(pageId, null);
+      document.getElementById('formDialog').classList.add('show');
+    }
+
+    function openEditDialog(pageId, id){
+      if(pageId === 'customer-order'){ openResponseDetail(id); return; }
+      var row = null;
+      if(pageId === 'marketing-stats') row = dataMarketingStats.find(function(r){ return r.region === id; });
+      else if(pageId === 'marketing-audit') row = dataMarketingAudit.find(function(r){ return r.project === id; });
+      else if(pageId === 'marketing-project') row = dataMarketingProject.find(function(r){ return r.id === id; });
+      else if(pageId === 'form-master'){ row = dataFormMaster.find(function(r){ return r.id === id; }); if(row) row = { name: row.name, code: row.code, version: row.version, valid: String(row.valid||1) }; }
+      else if(pageId === 'designer-case') row = dataDesignerCase.find(function(r){ return r.id === id; });
+      else if(pageId === 'construction-package') row = dataConstructionPackage.find(function(r){ return r.contract_code === id; });
+      else if(pageId === 'hr-settlement') row = dataHrSettlement.find(function(r){ return r.code === id; });
+      if(!row) return;
+      currentDialog.pageId = pageId;
+      currentDialog.editId = id;
+      document.getElementById('dialogTitle').textContent = '編輯';
+      renderDialogForm(pageId, row);
+      document.getElementById('formDialog').classList.add('show');
+    }
+
+    function closeDialog(){
+      document.getElementById('formDialog').classList.remove('show');
+    }
+
+    function saveDialog(){
+      var pageId = currentDialog.pageId;
+      var data = getFormData(pageId);
+      if(!data) return;
+      var id = currentDialog.editId;
+      if(id !== null && id !== undefined){
+        if(pageId === 'marketing-stats'){ var i = dataMarketingStats.findIndex(function(r){ return r.region === id; }); if(i>=0) dataMarketingStats[i] = data; }
+        else if(pageId === 'marketing-audit'){ var i = dataMarketingAudit.findIndex(function(r){ return r.project === id; }); if(i>=0) dataMarketingAudit[i] = data; }
+        else if(pageId === 'marketing-project'){ var i = dataMarketingProject.findIndex(function(r){ return r.id === id; }); if(i>=0){ data.id = id; dataMarketingProject[i] = data; } }
+        else if(pageId === 'form-master'){ var i = dataFormMaster.findIndex(function(r){ return r.id === id; }); if(i>=0){ data.id = id; data.valid = parseInt(data.valid,10); dataFormMaster[i] = data; } }
+        else if(pageId === 'designer-case'){ var i = dataDesignerCase.findIndex(function(r){ return r.id === id; }); if(i>=0){ data.id = id; dataDesignerCase[i] = data; } }
+        else if(pageId === 'construction-package'){ var i = dataConstructionPackage.findIndex(function(r){ return r.contract_code === id; }); if(i>=0){ var existing = dataConstructionPackage[i]; dataConstructionPackage[i] = { id: existing.id, contract_code: data.contract_code, project_code: data.project_code, customer_name: data.customer_name, address: data.address, period: data.period, quote: existing.quote, quote_items: existing.quote_items || [], gantt_items: existing.gantt_items || [] }; } }
+        else if(pageId === 'hr-settlement'){ var i = dataHrSettlement.findIndex(function(r){ return r.code === id; }); if(i>=0) dataHrSettlement[i] = data; }
+      } else {
+        if(pageId === 'marketing-stats') dataMarketingStats.push(data);
+        else if(pageId === 'marketing-audit') dataMarketingAudit.push(data);
+        else if(pageId === 'marketing-project'){ data.id = dataMarketingProject.length ? Math.max.apply(null, dataMarketingProject.map(function(r){ return r.id; })) + 1 : 1; data.status = data.status || '待審核'; dataMarketingProject.push(data); }
+        else if(pageId === 'form-master'){ data.id = dataFormMaster.length ? Math.max.apply(null, dataFormMaster.map(function(r){ return r.id; })) + 1 : 1; data.valid = parseInt(data.valid,10)||1; dataFormMaster.push(data); }
+        else if(pageId === 'designer-case'){ data.id = dataDesignerCase.length ? Math.max.apply(null, dataDesignerCase.map(function(r){ return r.id; })) + 1 : 1; dataDesignerCase.push(data); }
+        else if(pageId === 'construction-package'){ data.id = dataConstructionPackage.length ? Math.max.apply(null, dataConstructionPackage.map(function(r){ return r.id || 0; })) + 1 : 1; data.quote = data.quote || {}; data.quote_items = data.quote_items || []; data.gantt_items = data.gantt_items || []; dataConstructionPackage.push(data); }
+        else if(pageId === 'hr-settlement') dataHrSettlement.push(data);
+      }
+      closeDialog();
+      doQuery(pageId);
+      if(pageId === 'form-master') doQuery('marketing-form');
+    }
+
+    document.getElementById('formDialog').addEventListener('click', function(e){
+      if(e.target === this) closeDialog();
+    });
+
+    function editRow(pageId, id){
+      openEditDialog(pageId, id);
+    }
+    function deleteRow(pageId, id){
+      if(!confirm('確定要刪除這筆資料？')) return;
+      if(pageId === 'marketing-stats') dataMarketingStats = dataMarketingStats.filter(function(r){ return r.region !== id; });
+      else if(pageId === 'marketing-audit') dataMarketingAudit = dataMarketingAudit.filter(function(r){ return r.project !== id; });
+      else if(pageId === 'marketing-project') dataMarketingProject = dataMarketingProject.filter(function(r){ return r.id !== id; });
+      else if(pageId === 'form-master') dataFormMaster = dataFormMaster.filter(function(r){ return r.id !== id; });
+      else if(pageId === 'designer-case') dataDesignerCase = dataDesignerCase.filter(function(r){ return r.id !== id; });
+      else if(pageId === 'construction-package') dataConstructionPackage = dataConstructionPackage.filter(function(r){ return r.contract_code !== id; });
+      else if(pageId === 'hr-settlement') dataHrSettlement = dataHrSettlement.filter(function(r){ return r.code !== id; });
+      doQuery(pageId);
+      if(pageId === 'form-master') doQuery('marketing-form');
+    }
+
+    document.querySelector('.nav-item[data-id="customer"]').classList.add('open');
+    renderPage['customer-order']();
+  </script>
+</body>
+</html>

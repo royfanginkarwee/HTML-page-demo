@@ -375,13 +375,6 @@ h3{margin:0 0 8px;font-size:15px;}
   <h1>工務發包管理</h1>
   <div class="sub">選擇合約項目進行發包配置</div>
 
-  <div style="margin-bottom:16px">
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-      <input type="checkbox" id="filterReadyPackages" onchange="renderProjectList()" style="width:18px;height:18px;cursor:pointer">
-      <span>只顯示已規劃好派工列表的合約</span>
-    </label>
-  </div>
-
   <div class="grid">
     <div class="card" id="projectList">
       <h3>合約項目列表</h3>
@@ -408,6 +401,22 @@ h3{margin:0 0 8px;font-size:15px;}
     <div class="actions" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
       <button class="btn green" onclick="savePackageConfig()">確定配置</button>
       <button class="btn gray" onclick="closePackageModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 查看所有圖片 Dialog -->
+<div class="modal" id="allImagesModal">
+  <div class="modal-box" style="width:400px;max-width:95vw">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">查看所有圖片</h3>
+      <button class="btn gray" onclick="closeAllImagesDialog()">✕</button>
+    </div>
+    <div id="allImagesModalContent" style="padding:12px 0">
+      <p style="margin:0;color:#e8ecff">連結至 專案<span id="allImagesProjectId"></span> GCS</p>
+    </div>
+    <div class="actions" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+      <button class="btn gray" onclick="closeAllImagesDialog()">關閉</button>
     </div>
   </div>
 </div>
@@ -557,6 +566,28 @@ const vendors = [
   }
 ];
 
+// 廠商執行中案件與時程（模擬數據）
+const vendorOngoingCases = {
+  1: [
+    { project_code: "P2025-088", contract_code: "C2025-088", customer_name: "王先生", start_date: "2026-01-10", end_date: "2026-03-20" },
+    { project_code: "P2025-092", contract_code: "C2025-092", customer_name: "李小姐", start_date: "2026-02-01", end_date: "2026-04-15" }
+  ],
+  2: [
+    { project_code: "P2025-090", contract_code: "C2025-090", customer_name: "張先生", start_date: "2026-01-25", end_date: "2026-03-30" }
+  ],
+  3: [
+    { project_code: "P2025-085", contract_code: "C2025-085", customer_name: "陳先生", start_date: "2026-01-05", end_date: "2026-02-28" },
+    { project_code: "P2025-095", contract_code: "C2025-095", customer_name: "林小姐", start_date: "2026-02-10", end_date: "2026-04-30" }
+  ],
+  4: [
+    { project_code: "P2025-091", contract_code: "C2025-091", customer_name: "黃先生", start_date: "2026-02-05", end_date: "2026-04-20" }
+  ],
+  5: [],
+  6: [
+    { project_code: "P2025-089", contract_code: "C2025-089", customer_name: "吳先生", start_date: "2026-01-20", end_date: "2026-03-10" }
+  ]
+};
+
 let selectedContract = null;
 let packageConfig = {}; // {contractId: [{packageIndex: 0, items: [{quote_item_id, quantity}...]}]}
 let packageStatus = {}; // {contractId: {packageIndex: 'draft'|'building'|'sent'}}
@@ -691,6 +722,7 @@ function renderContractDetail(contract){
     
     <div class="actions">
       <button class="btn green" onclick="openPackageModal()">發包配置</button>
+      <button class="btn gray" onclick="openAllImagesDialog()">查看所有圖片</button>
     </div>
   `;
   
@@ -866,8 +898,27 @@ function renderPackageConfig(){
   
   let itemIndex = 1;
   Object.keys(itemsByCategory).forEach(category => {
-    html += `<tr class="category-header"><td colspan="9">${category}</td></tr>`;
-    itemsByCategory[category].forEach(item => {
+    // 計算該分類下可選項目的數量
+    const categoryItems = itemsByCategory[category];
+    const availableItems = categoryItems.filter(item => {
+      const allocated = allocatedQuantities[item.id] || 0;
+      return item.quantity - allocated > 0;
+    });
+    
+    html += `
+      <tr class="category-header">
+        <td>
+          <input type="checkbox" 
+            id="select_category_${category.replace(/\s+/g, '_')}"
+            ${availableItems.length === 0 ? "disabled" : ""}
+            onchange="toggleCategorySelection('${category}', this.checked)"
+            style="width:18px;height:18px;cursor:pointer">
+        </td>
+        <td colspan="8">${category}</td>
+      </tr>
+    `;
+    
+    categoryItems.forEach(item => {
       const allocated = allocatedQuantities[item.id] || 0;
       const remaining = item.quantity - allocated;
       html += `
@@ -875,6 +926,8 @@ function renderPackageConfig(){
           <td>
             <input type="checkbox" 
               id="select_item_${item.id}"
+              class="item-checkbox"
+              data-category="${category}"
               ${remaining <= 0 ? "disabled" : ""}
               onchange="toggleItemSelection(${item.id}, this.checked, ${remaining})">
           </td>
@@ -915,6 +968,42 @@ function renderPackageConfig(){
   
   // 重置选择状态
   selectedItems = {};
+  
+  // 初始化分類checkbox狀態
+  Object.keys(itemsByCategory).forEach(category => {
+    updateCategoryCheckboxState(category, itemsByCategory[category], allocatedQuantities);
+  });
+}
+
+function updateCategoryCheckboxState(category, categoryItems, allocatedQuantities){
+  // 獲取該分類下的所有可選項目
+  const availableItems = categoryItems.filter(item => {
+    const allocated = allocatedQuantities[item.id] || 0;
+    return item.quantity - allocated > 0;
+  });
+  
+  if(availableItems.length === 0) return;
+  
+  // 計算已選中的項目數量
+  const checkedCount = availableItems.filter(item => {
+    const checkbox = document.getElementById(`select_item_${item.id}`);
+    return checkbox && checkbox.checked;
+  }).length;
+  
+  const categoryCheckbox = document.getElementById(`select_category_${category.replace(/\s+/g, '_')}`);
+  if(!categoryCheckbox) return;
+  
+  // 更新分類checkbox狀態
+  if(checkedCount === 0){
+    categoryCheckbox.checked = false;
+    categoryCheckbox.indeterminate = false;
+  } else if(checkedCount === availableItems.length){
+    categoryCheckbox.checked = true;
+    categoryCheckbox.indeterminate = false;
+  } else {
+    categoryCheckbox.checked = false;
+    categoryCheckbox.indeterminate = true;
+  }
 }
 
 function toggleItemSelection(itemId, checked, remaining){
@@ -936,6 +1025,92 @@ function toggleItemSelection(itemId, checked, remaining){
       qtyInput.disabled = true;
     }
   }
+  
+  // 更新分類checkbox狀態
+  updateCategoryCheckbox(itemId);
+}
+
+function toggleCategorySelection(category, checked){
+  if(!selectedContract) return;
+  
+  // 獲取該分類下的所有項目
+  const categoryItems = selectedContract.quote_items.filter(item => item.category === category);
+  
+  // 計算已分配數量
+  const packages = packageConfig[selectedContract.id] || [];
+  const allocatedQuantities = {};
+  packages.forEach(pkg => {
+    pkg.items.forEach(item => {
+      if(!allocatedQuantities[item.quote_item_id]){
+        allocatedQuantities[item.quote_item_id] = 0;
+      }
+      allocatedQuantities[item.quote_item_id] += item.quantity || 0;
+    });
+  });
+  
+  // 遍歷該分類下的所有項目
+  categoryItems.forEach(item => {
+    const allocated = allocatedQuantities[item.id] || 0;
+    const remaining = item.quantity - allocated;
+    
+    if(remaining > 0){
+      const checkbox = document.getElementById(`select_item_${item.id}`);
+      if(checkbox && !checkbox.disabled){
+        checkbox.checked = checked;
+        
+        // 直接操作selectedItems和数量输入框，避免循环调用
+        if(checked){
+          selectedItems[item.id] = {
+            checked: true,
+            quantity: remaining
+          };
+          const qtyInput = document.getElementById(`qty_item_${item.id}`);
+          if(qtyInput){
+            qtyInput.value = remaining;
+            qtyInput.disabled = false;
+          }
+        } else {
+          delete selectedItems[item.id];
+          const qtyInput = document.getElementById(`qty_item_${item.id}`);
+          if(qtyInput){
+            qtyInput.value = 0;
+            qtyInput.disabled = true;
+          }
+        }
+      }
+    }
+  });
+  
+  // 更新分類checkbox狀態
+  updateCategoryCheckboxState(category, categoryItems, allocatedQuantities);
+}
+
+function updateCategoryCheckbox(itemId){
+  if(!selectedContract) return;
+  
+  // 獲取該項目所屬的分類
+  const item = selectedContract.quote_items.find(i => i.id === itemId);
+  if(!item) return;
+  
+  const category = item.category;
+  
+  // 計算已分配數量
+  const packages = packageConfig[selectedContract.id] || [];
+  const allocatedQuantities = {};
+  packages.forEach(pkg => {
+    pkg.items.forEach(item => {
+      if(!allocatedQuantities[item.quote_item_id]){
+        allocatedQuantities[item.quote_item_id] = 0;
+      }
+      allocatedQuantities[item.quote_item_id] += item.quantity || 0;
+    });
+  });
+  
+  // 獲取該分類下的所有項目
+  const categoryItems = selectedContract.quote_items.filter(i => i.category === category);
+  
+  // 使用統一的函數更新分類checkbox狀態
+  updateCategoryCheckboxState(category, categoryItems, allocatedQuantities);
 }
 
 function updateSelectionQuantity(itemId, quantity, maxQuantity){
@@ -1269,12 +1444,15 @@ function renderPackagesList(contract){
           <div class="package-actions">
             ${status === 'draft' ? `
               <button class="btn orange" style="padding:6px 12px;font-size:12px" onclick="sendPackage(${contract.id}, ${idx})">派包</button>
+              <button class="btn gray" style="padding:6px 12px;font-size:12px" onclick="attachPackageImages(${contract.id}, ${idx})">附圖</button>
             ` : ''}
             ${status === 'building' ? `
               <span style="color:#ffcc66;font-size:12px">建置中...</span>
+              <button class="btn gray" style="padding:6px 12px;font-size:12px" onclick="attachPackageImages(${contract.id}, ${idx})">附圖</button>
             ` : ''}
             ${status === 'sent' ? `
               <span style="color:#3ddc97;font-size:12px">已發包</span>
+              <button class="btn gray" style="padding:6px 12px;font-size:12px" onclick="attachPackageImages(${contract.id}, ${idx})">附圖</button>
             ` : ''}
           </div>
         </div>
@@ -1366,14 +1544,30 @@ function openVendorModal(contract){
     const cooperationBadge = getCooperationBadge(vendor.cooperation);
     const delayBadge = getDelayBadge(vendor.delay_rate);
     const priceBadge = getPriceBadge(vendor.price_consistency);
+    const isSelected = selectedVendorIds.includes(vendor.id);
+    const ongoingCases = vendorOngoingCases[vendor.id] || [];
+    const ongoingHtml = ongoingCases.length === 0
+      ? '<div class="metric-label" style="margin-top:12px">執行中案件</div><div style="font-size:12px;color:#a7b0d6">無</div>'
+      : `
+        <div class="metric-label" style="margin-top:12px">執行中案件與時程</div>
+        <div style="margin-top:6px;font-size:12px">
+          ${ongoingCases.map(c => `
+            <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+              <b>${c.contract_code}</b> ${c.customer_name}<br>
+              <span style="color:#a7b0d6">${c.start_date} ~ ${c.end_date}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
     
     html += `
-      <div class="vendor-card" onclick="selectVendor(${vendor.id})" id="vendor_${vendor.id}">
+      <div class="vendor-card ${isSelected ? 'selected' : ''}" onclick="selectVendor(${vendor.id})" id="vendor_${vendor.id}">
         <div class="vendor-header">
           <div style="display:flex;align-items:center;gap:12px">
             <input type="checkbox" 
               id="vendor_checkbox_${vendor.id}" 
               onclick="event.stopPropagation();selectVendor(${vendor.id})"
+              ${isSelected ? 'checked' : ''}
               style="width:20px;height:20px;cursor:pointer">
             <div class="vendor-name">${vendor.name}</div>
           </div>
@@ -1408,6 +1602,7 @@ function openVendorModal(contract){
             </div>
           </div>
         </div>
+        ${ongoingHtml}
       </div>
     `;
   });
@@ -1484,6 +1679,25 @@ function closeVendorModal(){
   document.getElementById("vendorModal").classList.remove("active");
   selectedVendorIds = [];
   currentPackageSelection = null;
+}
+
+function openAllImagesDialog(){
+  if(!selectedContract){
+    alert("請先選擇合約項目");
+    return;
+  }
+  document.getElementById("allImagesProjectId").textContent = selectedContract.project_code;
+  document.getElementById("allImagesModal").classList.add("active");
+}
+
+function closeAllImagesDialog(){
+  document.getElementById("allImagesModal").classList.remove("active");
+}
+
+function attachPackageImages(contractId, packageIndex){
+  const contract = contracts.find(c => c.id === contractId);
+  const pkgLabel = getPackageNumber(packageIndex + 1);
+  alert(`附圖功能：合約 ${contract ? contract.contract_code : contractId}，發包 ${pkgLabel}。可在此串接上傳或選擇圖片。`);
 }
 
 function getQualityBadge(quality){
